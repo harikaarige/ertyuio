@@ -1,0 +1,1989 @@
+*** Settings ***
+Resource          ../keywords/super.txt
+
+*** Test Cases ***
+RAAuto-13041:Validate the number of Search Results displayed for the Second Filter-API ID:26822
+    [Documentation]    1. Login to subdomain with Valid credentials.
+    ...
+    ...    2. Selected Advance Search field "Session Range" as first filter item and entered a value '-1' for it.Clicked on \ "Show Results" to be displayed by the search results.
+    ...
+    ...    3. Verified all the Values displayed are less than 1 are equal to 1.
+    ...
+    ...    4. Reterived the values displayed under the column "State" into a list.
+    ...
+    ...    5. Analyzed the Search Results displayed on the Results table and read the number of appearances for the first state value displayed on the Results table.
+    ...
+    ...    6. Selected the second search filter item as "State" and its value as the first state value displayed on applying first filter for the search.
+    ...
+    ...    7. Read the number of Search Results displayed after Performing the search using both the first and second Filters.
+    ...
+    ...    8. Verified the number of appearances for the second search filter on applying only one filter and the count displayed after using both filters are same.
+    Comment    Login to subdomain with Valid credentials.
+    Login to Application    ${SUBDOMAINURL}    ${alertsUser}    ${alertsPassword}
+    MenuSelect    Alerts
+    ${filters}=    Create Dictionary    Session Range    35
+    Enter And Validate Advanced Search Fields    ${filters}
+    Comment    Wait Until Keyword Succeeds    1m    100ms    Any One Element Should Be Visible    //a[@title='View Case']    ${label.cases.noMatchingDataFound}
+    Rest Default Columns
+    Sleep    ${Delay2}
+    ${tableRowsCount}=    Run Keyword If    '${BROWSER}'=='ie'    Get Table Rows Count In IE Browser    ELSE    Get Table Rows Count By Scrolling    ${table.alerts.searchResults.knob}
+    ...    ${table.alerts.searchResults.barContainer}
+    ${columnNoOfState}=    Get Column Number    ${table.alerts.matchingRows}    State
+    Run Keyword If    '${columnNoOfState}'=='-1'    Fail    State column name is not displayed in alerts table.
+    Sleep    3s
+    ${listOfSessions}=    Get Table Values Into List By Down Arrow    //div[@id="tAlerts"]/div/table//table    ${table.alerts.searchResults.knob}    ${table.alerts.searchResults.barContainer}    Session    False
+    ...    ${tableRowsCount}
+    @{listOfSessions}=    Set Variable    ${listOfSessions}
+    Close Alert Message
+    Comment    AutoItLibrary.Mouse Move    500    500
+    Comment    Verified all the Values displayed are less than 1 are equal to 1.
+    : FOR    ${item}    IN    @{listOfSessions}
+    \    Run Keyword Unless    ${item}==35    Fail    Session Value ${item} \ is not less than are equal to 35.
+    Wait For Element Visible    ${button.alerts.showResults}    ${DELAY}
+    Click Element    ${button.alerts.showResults}
+    Sleep    3s
+    Wait Until Keyword Succeeds    1m    100ms    Any One Element Should Be Visible    //a[@title='View Case']    ${label.cases.noMatchingDataFound}
+    Sleep    2s
+    Comment    Reterived the values displayed under the column "State" into a list.
+    ${listOfStates}=    Get Table Values Into List By Down Arrow    //div[@id="tAlerts"]/div/table//table    ${table.alerts.searchResults.knob}    ${table.alerts.searchResults.barContainer}    State    False
+    ...    ${tableRowsCount}
+    Log    ${listOfStates}
+    Close Alert Message
+    Sleep    2s
+    @{listOfStates}=    Set Variable    ${listOfStates}
+    Comment    Analyzed the Search Results displayed on the Results table and read the number of appearances for the first state value displayed on the Results table.
+    ${countOfSelectedState}=    Set Variable    0
+    : FOR    ${iCount}    IN    @{listOfStates}
+    \    ${bStatus}=    Run Keyword And Return Status    Should Be Equal As Strings    @{listOfStates}[0]    ${iCount}
+    \    ${countOfSelectedState}=    Run Keyword If    ${bStatus}    Evaluate    ${countOfSelectedState}+1    ELSE
+    \    ...    Set Variable    ${countOfSelectedState}
+    Sleep    7s
+    Wait For Element Visible    ${text.reports.advanceSearchSessionRange}    3s
+    Click Element    ${button.alerts.advanceSearch}
+    Sleep    3s
+    Wait For Element Visible    ${text.reports.advanceSearchStateField}    ${DELAY}
+    Comment    Selected the second search filter item as "State" and its value as the first state value displayed on applying first filter for the search.
+    ${filters}=    Create Dictionary    State    @{listOfStates}[0]    Session Range    35
+    Enter And Validate Advanced Search Fields    ${filters}
+    Comment    Read the number of Search Results displayed after Performing the search using both the first and second Filters.
+    ${totalRows}=    Get Table Rows Count in Alerts
+    Comment    Verified the number of appearances for the second search filter on applying only one filter and the count displayed after using both filters are same.
+    Should Be Equal As Strings    ${totalRows}    ${countOfSelectedState}    The records count displayed after using both the first and second Filters is not equal to the records count displayed a selected item as second filter of under "State" column after using single Filter.
+    Logout
+    [Teardown]    Stop Application
+
+RAAuto-95:Validate Negative IP Addresses-API ID:26813
+    [Documentation]    Allow users to perform a Search by IP address for a NEGATIVE (i.e. "does not exist") value.
+    ...
+    ...    The methodology to perform is to place a negative sign ("-") in front of the IP address(es) desired. \ So, for example, if the user wanted to see all sessions that did NOT originate from 2 different addresses, they would enter:
+    ...
+    ...    "-93.101.75.01,-110.23.79.112"
+    ...
+    ...    Negative entries can be multiples (see example), by separating entries with a comma.
+    ...
+    ...    Please see,
+    ...
+    ...    FB case 10732: "Negative" IP Searching
+    ...
+    ...    FB case 11583: Negative IP search in ALERTS page will not return OPEN sessions in the result.
+    : FOR    ${iCount}    IN RANGE    1    3
+    \    ${bStatus}    Run Keyword And Return Status    Validate Negative IP Addresses
+    \    Exit For Loop If    ${bStatus}
+    Run Keyword Unless    ${bStatus}    Fail    Testcase got failed after 2 Iterations.
+
+RAAuto-52:Verify Column Headers Exist After Scrolling-API ID:26666
+    [Documentation]    Version 1
+    ...
+    ...    Summary: Verify The Columns Names List Before Scrolling And The Columns Names List After Scrolling Using List Comparison Function On Results Table In Alerts Page.
+    ...
+    ...    1. Retrieved some record from alerts page and Reads the Columns displayed from the search results table into a list.
+    ...
+    ...    2. Performs the Mouse scroll action on the search results table of Alerts page.
+    ...
+    ...    3. Reads the Column Values visible from the Search results table after mouse scroll action and validates the column values displayed are same as the Column values displayed on the Alerts page before Scrolling.
+    [Setup]
+    [Template]
+    [Timeout]
+    Login to Application    ${SUBDOMAINURL}    ${alertsUser}    ${alertsPassword}
+    MenuSelect    Alerts
+    Comment    Reads the number of columns vsible on the Search Results table.
+    Wait For Element Visible    ${table.alerts.searchResults.columnCount}    ${DELAY}
+    ${columnCnt}=    Get Matching Xpath Count    ${table.alerts.searchResults.columnCount}
+    Comment    Clicked on "Show Results" button to be displayed by the Search Results.
+    Wait And Click Element    ${button.alerts.showResults}
+    Wait Until Keyword Succeeds    1m    100ms    Any One Element Should Be Visible    //a[@title='Account Detail']    ${label.cases.noMatchingDataFound}
+    Comment    Failed the test if the "No Matching Data" label found.
+    ${bstatus}=    Verify Element Present    ${label.cases.noMatchingDataFound}
+    Run Keyword If    ${bstatus}==True    Fail    "No Matching Data Found" on the screen.
+    Comment    Fails the test if the Visible row count and the total number of rows displyed on the Search results table are same as the test says "Make sure the number of records cannot fit into one screen".
+    ${visibleRowCount}=    Get Matching Xpath Count    ${label.alerts.visibleRowCount}
+    ${totalRows}=    Get Table Rows Count In IE Browser
+    Run Keyword If    ${totalRows}==${visibleRowCount}    Fail    Total Rowcount,Visible Rowcount are Equal So No need to perform mouse scroll for Checking Column headers position
+    Comment    Read the visible Column names from the Search Results table before scrolling.
+    Get Column Names
+    Set Test Variable    ${actualColumnNames}    ${columnHeaders}
+    Comment    Performed the Mouse Scroll action on the Search results table of Alerts page till the first 50 records.
+    Wait For Element Visible    ${table.alerts.searchResults.knob}
+    : FOR    ${counter}    IN RANGE    1    5
+    \    Mouse Scroll    ${table.alerts.searchResults.knob}
+    Comment    Reads the visible column names displayed from the search results table after mouse scroll.
+    Get Column Names
+    ${expectedColumnNames}=    Set Variable    ${columnHeaders}
+    Comment    Validates the Columns visible before and after mouse scroll are same.
+    Lists Should Be Equal    ${actualColumnNames}    ${expectedColumnNames}
+    Logout
+    [Teardown]    Stop Application
+
+RAAuto-13045:Validate Status Filters In CheckBox Group With Search Result Table-API ID:26825
+    [Documentation]    1. Login to VAC domain with credentials auto2vacu1/Password7
+    ...
+    ...    2. Select Alerts menu, All Time from date dropdown
+    ...
+    ...    3. Select Advance Search field "Session Range" as first filter item and entered a value '-1' for it.Click on "Show Results" to be displayed by the search results.
+    ...
+    ...    4. Check the total rows from the results obtained.
+    ...
+    ...    5. Get Count of checked box on Alerts page
+    ...
+    ...    6. The table dropdown count and checked box count should be equal.
+    : FOR    ${iCount}    IN RANGE    1    3
+    \    ${bStatus}    Run Keyword And Return Status    _Validate Status Filters In CheckBox Group With Search Result Table
+    \    Exit For Loop If    ${bStatus}
+    Run Keyword Unless    ${bStatus}    Fail    Testcase got failed after 2 Iterations.
+
+RAAuto-81:previous searches-API ID:26757
+    [Documentation]    Verify previous searches can be saved, run concurrently, can be canceled.
+    ...
+    ...    Preconditions
+    ...    Source: quick_start_guide.pdf
+    ...
+    ...    Previous searches are available using the Previous Searches drop down menu in the lower right of the Search Panel.
+    ...
+    ...    • By default, the maximum number of available previous searches is twelve (or as configured). It is also dependent on available memory. Searches are retained until memory limits are reached, at which point they are eliminated in a first in, first out order.
+    ...
+    ...    • Concurrent, active searches are also listed on the Previous Results drop-down menu. Searches still underway are identified with an ‘In Progress’ label.
+    ...
+    ...    • A canceled search is saved under Previous Searches in the drop-down. The search can be selected and restarted. The listing is prefaced with a ‘Canceled’ label.
+    [Tags]    NC_inconsistent
+    Login to Application    ${SUBDOMAINURL}    ${subdomainuser}    ${subdomainuserpassword}
+    MenuSelect    Alerts
+    Wait For Element Visible    ${button.alerts.showResults}    ${DELAY}
+    Click Element    ${button.alerts.showResults}
+    Select Risk In Basic Search    RedAndYellow
+    Wait And Click Element    ${button.alerts.advanceSearch}
+    Sleep    2s
+    Comment    Multiple previous searches should be saved in the drop down window.
+    @{activityCityPairs}=    Create List    ACHCrtEdtOneTime    New York    ACHCrtEdtRcp    Los Angeles    ACHDel
+    ...    Chicago    ACHDelRcp    Houston    ACHSubOneTime    Dallas    AcctLinkInt
+    ...    pheonix    AlrtCrt    san antonio    AlrtDel    san diego    BPDel
+    ...    panama    BPCrtEdt    oradea    ChkView    richmond    Info
+    ...    little rock
+    : FOR    ${Cnt}    IN RANGE    0    23    2
+    \    Wait Until Keyword Succeeds    ${DELAY}    100ms    Input Text    ${text.advanceSearch.activity}    @{activityCityPairs}[${Cnt}]
+    \    Wait And Click Element    activityFieldList
+    \    Wait Until Keyword Succeeds    ${DELAY}    100ms    Input Text    ${text.reports.advanceSearchCityField}    @{activityCityPairs}[${Cnt+1}]
+    \    Wait And Click Element    activityFieldList
+    \    Wait And Click Element    ${button.alerts.showResults}
+    \    Sleep    5s
+    ${previousSearchesCnt}=    Get Matching Xpath Count    ${label.reports.previousSearch.count}
+    Run Keyword And Continue On Failure    Run Keyword If    ${previousSearchesCnt}!=8    Fail    Multiple Previous searches created are not saved on Fraud Match Page.
+    Sleep    5s
+    Click Element    riskFilterDoral
+    Sleep    1s
+    Simulate    ${link.common.riskAll}    click
+    ${filters}=    Create Dictionary    Country    united states    Risk Factor    ACHRcp
+    Enter And Validate Advanced Search Fields    ${filters}    False    ${button.fraudMatch.showResults.hide}
+    ${bstatus}=    Get Previous Search Text Status    Hide    In-progress
+    Run Keyword And Continue On Failure    Run Keyword If    ${bstatus}!=True    Fail    'In Progress' labelled previous searches are not displayed.
+    Logout
+    [Teardown]    Stop Application
+
+RAAuto-74:Validate Sort Order-API ID:26723
+    [Documentation]    Verify The Table Session Column Values Are In Sorted Order Or Not
+    Login to Application    ${SUBDOMAINURL}    ${alertsUser}    ${alertsPassword}
+    MenuSelect    Alerts
+    ${filters}=    Create Dictionary    City    boston
+    Enter And Validate Advanced Search Fields    ${filters}
+    Sleep    2s
+    Rest Default Columns
+    Sleep    2s
+    ${totalrows}=    Get Table Rows Count In IE Browser
+    Sorted List Values    ${table.alerts.matchingRows}    ${table.alerts.searchResults.knob}    //div[contains(@id,'ajs_T_AlertsTable_tAlerts_F_AlertsTable_tAlerts_bar_container')]    Session    AlertsTable_tAlerts_title    ${totalrows}
+    Sleep    3s
+    Reverse Sorted List    ${table.alerts.matchingRows}    ${table.alerts.searchResults.knob}    //div[contains(@id,'ajs_T_AlertsTable_tAlerts_F_AlertsTable_tAlerts_bar_container')]    Session    AlertsTable_tAlerts_title    ${totalrows}
+    Logout
+    [Teardown]    Stop Application
+
+RAAuto-75:Verify Display Alerts By User-API ID:26726
+    [Documentation]    Version 1
+    ...    Verify RiskApp can display alerts grouped by account.
+    ...    Validate The Account Name Is Not Repeated When Grouping.
+    : FOR    ${iCount}    IN RANGE    1    3
+    \    ${bStatus}    Run Keyword And Return Status    Verify Display Alerts By User
+    \    Exit For Loop If    ${bStatus}
+    Run Keyword Unless    ${bStatus}    Fail    Testcase got failed after 2 Iterations.
+
+RAAuto-72:Validate IP Filter Using Wild Card-API ID:26717
+    [Documentation]    Summary
+    ...    Wildcard is not allowed in IP search.
+    ...
+    ...    Network is used to search for a Network Block Address.
+    ...    Search using the first three address octets.
+    ...    If a fourth octet is used, it must be zero. (Note that zero is not a wildcard character that can be used in other
+    ...    octets, i.e. specifying the network as ‘172.16.0.0’ does not search for all Class B subnets.)
+    ...    Wildcards do not work.
+    ...    Some systems are configured with IP rather than Network Block. It offers the same functionality as Network and
+    ...    also allows you to search for a specific IP. If you want to match on a Network Block Address, specify only the first
+    ...    three octets.
+    Login to Application    ${SUBDOMAINURL}    ${alertsUser}    ${alertsPassword}
+    MenuSelect    Alerts
+    ${resetStatus}    Wait For Element Visible    ${button.reports.advSearchReset}    ${DELAY}
+    Run Keyword If    '${resetStatus}'!='True'    Click Element    ${button.alerts.advanceSearch}
+    Sleep    5s
+    ${filters}=    Create Dictionary    IP Address    12.232.193.2*
+    Enter And Validate Advanced Search Fields    ${filters}    True    //pre[@class='clearfixWarningDialog']
+    Comment    Typing text "12.232.193.2*" into IP Address field.
+    ${bStatus}=    Wait For Element Visible    //pre[@class='clearfixWarningDialog']    ${DELAY}
+    Run Keyword If    ${bStatus}!=True    Fail    Alert message was not displayed.
+    Wait For Element Visible    //pre[@class='clearfixWarningDialog']/span
+    ${actualAlertMsg}=    Run Keyword If    ${bStatus}==True    CommonLibrary.Get Text    //pre[@class='clearfixWarningDialog']/span
+    Run Keyword If    ${bStatus}==True    Click Element    //input[@id='warnForm:applWarningClose' and @value='Ok']
+    Should Be Equal As Strings    ${actualAlertMsg}    Invalid IP or Network address specification: 12.232.193.2*    Alert message "Invalid IP or Network address specification" is not displayed after entering invalid IP Address into IP Address field with a wildcard.
+    Logout
+    [Teardown]    Stop Application
+
+RAAuto-73:Validate Session Range in Advance Search Filter-API ID:26720
+    [Documentation]    Summary
+    ...    Verify functionality of advanced search using session range.
+    ...
+    ...    FB case # 1238 UI: filters: allow searching/filtering by session number (k)
+    Login to Application    ${SUBDOMAINURL}    ${alertsUser}    ${alertsPassword}
+    MenuSelect    Alerts
+    Comment    Clicked on Advance search icon on Alerts Page.
+    ${filters}=    Create Dictionary    Session Range    15
+    Enter And Validate Advanced Search Fields    ${filters}
+    Comment    Entered Input for the Session Range Field as "15" and Clicked the "Show Results" button.
+    Wait Until Keyword Succeeds    1m    100ms    Any One Element Should Be Visible    //a[@title='View Case']    ${label.cases.noMatchingDataFound}
+    Run Keyword And Continue On Failure    Wait Until Page Contains Element    ${tabel.alerts.searchResults.selectedRecord}    ${DELAY}    No Rows Displayed on the screen.
+    Comment    Failed the test if the "No Matching Data" label found insted of Search Results.
+    ${bstatus}=    Verify Element Present    ${label.cases.noMatchingDataFound}
+    Run Keyword If    ${bstatus}==True    Fail    "No Matching Data Found" on the screen.
+    Comment    Read the values displayed under the column "Session" into a list.
+    ${totalRows}=    Get Table Rows Count in Alerts
+    @{sessionVals}=    Get Table Values Into List By Down Arrow    ${table.alerts.matchingRows}    ${table.alerts.searchResults.knob}    ${table.alerts.searchResults.barContainer}    Session    False
+    ...    ${totalRows}
+    ${sessionVals}=    Set Variable    @{sessionVals}
+    ${listCnt}=    Get Length    ${sessionVals}
+    Comment    Verified all the Values displayed are equal to 15.
+    : FOR    ${index}    IN RANGE    0    ${listCnt}
+    \    Run Keyword Unless    @{sessionVals}[${index}]==15    Fail    Session Value @{sessionVals}[${index}] is not equal to 15
+    Wait For Element Visible    ${text.alerts.fromDate}    ${DELAY}
+    Input Text    ${text.alerts.fromDate}    07/11/2013
+    Wait For Element Visible    ${text.alerts.toDate}    ${DELAY}
+    Input Text    ${text.alerts.toDate}    07/12/2013
+    Sleep    1s
+    Comment    Entered Input for the Session Range Field as "10-20" and Clicked the "Show Results" button.
+    ${filters}=    Create Dictionary    SessionRange    10-20
+    Enter And Validate Advanced Search Fields    ${filters}
+    ${bstatus}=    Verify Element Present    ${label.cases.noMatchingDataFound}
+    Run Keyword If    ${bstatus}==True    Fail    "No Matching Data Found" on the screen.
+    Comment    Read the values displayed under the column "Session" into a list. \ \ \
+    ${totalRows}=    Get Table Rows Count in Alerts
+    @{sessionValsWithInGivenRange}=    Get Table Values Into List By Down Arrow    ${table.alerts.matchingRows}    ${table.alerts.searchResults.knob}    ${table.alerts.searchResults.barContainer}    Session    False
+    ...    ${totalRows}
+    ${sessionValsWithInGivenRange}=    Set Variable    @{sessionValsWithInGivenRange}
+    ${listCnt}=    Get Length    ${sessionValsWithInGivenRange}
+    Comment    Verified all the Values displayed are in range 10 and 20.
+    : FOR    ${index}    IN RANGE    0    ${listCnt}
+    \    Run Keyword Unless    @{sessionValsWithInGivenRange}[${index}]>=10 and @{sessionValsWithInGivenRange}[${index}]<=20    Fail    Session Value :@{sessionValsWithInGivenRange}[${index}] is not in the \ specified \ range 10-20
+    Comment    Entered Input for the Session Range Field as "-5" and Clicked the "Show Results" button.
+    ${filters}=    Create Dictionary    SessionRange    -5
+    Enter And Validate Advanced Search Fields    ${filters}
+    ${bstatus}=    Verify Element Present    ${label.cases.noMatchingDataFound}
+    Run Keyword If    ${bstatus}==True    Fail    "No Matching Data Found" on the screen.
+    ${totalRows}=    Get Table Rows Count in Alerts
+    @{sessionValsWithLessThanAndIncludedVal}=    Get Table Values Into List By Down Arrow    ${table.alerts.matchingRows}    ${table.alerts.searchResults.knob}    ${table.alerts.searchResults.barContainer}    Session    False
+    ...    ${totalRows}
+    ${sessionValsWithLessThanAndIncludedVal}=    Set Variable    @{sessionValsWithLessThanAndIncludedVal}
+    ${listCnt}=    Get Length    ${sessionValsWithLessThanAndIncludedVal}
+    Comment    Verified all the Values displayed are less than or equal to 5.
+    : FOR    ${index}    IN RANGE    0    ${listCnt}
+    \    Run Keyword Unless    @{sessionValsWithLessThanAndIncludedVal}[${index}]<=5    Fail    Session Value:@{sessionValsWithLessThanAndIncludedVal}[${index}] is not \ less than or equal to given range -5
+    Comment    Entered Input for the Session Range Field as "5-" and Clicked the "Show Results" button.
+    ${filters}=    Create Dictionary    SessionRange    5-
+    Enter And Validate Advanced Search Fields    ${filters}
+    ${bstatus}=    Verify Element Present    ${label.cases.noMatchingDataFound}
+    Run Keyword If    ${bstatus}==True    Fail    "No Matching Data Found" on the screen.
+    ${totalRows}=    Get Table Rows Count in Alerts
+    @{sessionValsWithGreaterThanAndIncludedVal}=    Get Table Values Into List By Down Arrow    ${table.alerts.matchingRows}    ${table.alerts.searchResults.knob}    ${table.alerts.searchResults.barContainer}    Session    False
+    ...    ${totalRows}
+    ${sessionValsWithGreaterThanAndIncludedVal}=    Set Variable    @{sessionValsWithGreaterThanAndIncludedVal}
+    ${listCnt}=    Get Length    ${sessionValsWithGreaterThanAndIncludedVal}
+    Comment    Verified all the Values displayed are greater than or equal to 5.
+    : FOR    ${index}    IN RANGE    0    ${listCnt}
+    \    Run Keyword Unless    @{sessionValsWithGreaterThanAndIncludedVal}[${index}]>=5    Fail    Session Value:@{sessionValsWithGreaterThanAndIncludedVal}[${index}] is not less than or equal to given range 5-
+    Logout
+    [Teardown]    Stop Application
+
+RAAuto-90:Validate the Advanced Search by the countries in Watch List-API ID:26787
+    [Documentation]    1. In RA ALERTS page, expand Advanced Search area
+    ...
+    ...    2. Move the cursor to the right of the Country search field. A watch list icon should appear.
+    ...
+    ...    3. Click on the watch list icon. The Watch List dialog box will appear.
+    ...
+    ...    4. Verify there are four options in the drop-down list: OFAC only, Watch list, non-US only, and New...
+    ...
+    ...    5. In the Watchlist drop-down, select OFAC only.
+    ...
+    ...    6. Scroll down the list. Verify the Values in the list
+    ...
+    ...    7. Click the Select button
+    ...
+    ...    8. This action should take you back to the Advance Search and the selected watch list name with brackets enclosed, should appear in the Country search field.
+    ...
+    ...    9. Mark the Country checkbox
+    ...
+    ...    10. Select the date range as "All Time" and Risk level = All, and Status = Not Viewed, Viewed, Case Open.
+    ...
+    ...    11. Click Show Results.
+    ...
+    ...    12. In ViginiaCreditUnion-Retail the results should be displayed according to the Select item from Watch List Box.
+    Login to Application    ${SUBDOMAINURL}    ${alertsUser}    ${alertsPassword}
+    MenuSelect    Alerts
+    Comment    Selected Date dropdown item as "All Time" , Risk Level = All , Statuses= Not Viewed, Viewed, Case Open.
+    Select Date In Basic Search    All Time
+    Select Risk In Basic Search    Red
+    Sleep    3s
+    ${statusesCount}=    Get Matching Xpath Count    ${buttons.alerts.status}
+    : FOR    ${temp}    IN RANGE    1    ${statusesCount} + 1
+    \    ${title}=    Get Element Attribute Value    ${buttons.alerts.status}[${temp}]@title
+    \    ${class}=    Get Element Attribute Value    ${buttons.alerts.status}[${temp}]@class
+    \    Run Keyword If    '${class}'!='selected' and '${title}'=='Not Viewed'    Wait And Click Element    ${buttons.alerts.status}[${temp}]
+    \    Run Keyword If    '${class}'!='selected' and '${title}'=='Viewed'    Wait And Click Element    ${buttons.alerts.status}[${temp}]
+    \    Run Keyword If    '${class}'!='selected' and '${title}'=='Case Open'    Wait And Click Element    ${buttons.alerts.status}[${temp}]
+    \    Run Keyword If    '${class}'=='selected' and '${title}'=='Case Closed'    Wait And Click Element    ${buttons.alerts.status}[${temp}]
+    \    Run Keyword If    '${class}'=='selected' and '${title}'=='Dismissed'    Wait And Click Element    ${buttons.alerts.status}[${temp}]
+    Sleep    1s
+    Comment    Clicked on "Advance Search" button and Performed Mouse over \ action on Country text box.
+    Wait For Element Visible    ${button.alerts.advanceSearch}    ${DELAY}
+    Wait And Click Element    ${button.alerts.advanceSearch}
+    Sleep    3s
+    Wait Until Page Contains Element    ${text.advanceSearch.country}    10000
+    Mouse Over    ${text.advanceSearch.country}
+    Mouse Over    ${text.advanceSearch.country}
+    Comment    Verified the Watch List icon presence after Mouse Over on Country filed and clicked on "Watch List" Icon.
+    Wait Until Page Contains Element    ${image.advanceSearch.watchListIcon}    ${DELAY}    Watch List icon is not displayed beside country text box.
+    Wait And Click Element    ${image.advanceSearch.watchListIcon}
+    Comment    Verified the Watch List for Country box presence after clicking on"Watch List" Icon.
+    Wait Until Page Contains Element    ${list.watchlistDialogForm.watchListDropdown}    ${DELAY}    Watch List for country is not displayed on afetr clicking the Watch Icon.
+    Comment    Verified the Watch List Dropdown items displayed are same as (Select...,OFAC only,Watch list,non-US only,New...)on Watch Lists for Country pop up window.
+    ${actuallistitems}=    Get List Items    ${list.watchlistDialogForm.watchListDropdown}
+    ${expectedlistitems}=    Create List    Select...    OFAC only    non-US only    Watch list    New...
+    Sort List    ${actuallistitems}
+    Sort List    ${expectedlistitems}
+    List Should Contain Sub List    ${actuallistitems}    ${expectedlistitems}
+    Comment    Selected the dropdown item as "Watch List" and Read the values displayed under text area for the "Watch List" selection.
+    Select From List By Label    ${list.watchlistDialogForm.watchListDropdown}    Watch list
+    Wait Until Page Contains Element    ${text.watchlistDialogForm.countrylistTextArea}    ${DELAY}    OFAC list is not displayed on Watch List for Country content box.
+    ${WATCHlist}=    CommonLibrary.Get Text    ${text.watchlistDialogForm.countrylistTextArea}
+    Click Element    ${button.watchlistDialogForm.Select}
+    Wait Until Page Contains Element    ${text.advanceSearch.country}    ${DELAY}
+    Sleep    1s
+    Comment    Clicked on "Search Results" button and verified the results are displayed the same country values displayed on Watch List box.
+    Wait Until Page Contains Element    ${textbox.advanceSearch.Country}    ${DELAY}
+    Wait And Click Element    ${textbox.advanceSearch.Country}
+    Press Tab Key    ${textbox.advanceSearch.Country}
+    Wait Until Page Contains Element    ${button.alerts.showResults}    ${DELAY}
+    Wait And Click Element    ${button.alerts.showResults}
+    Wait Until Keyword Succeeds    1m    100ms    Any One Element Should Be Visible    //a[@title='Account Detail']    ${label.cases.noMatchingDataFound}
+    ${dct}    Create Dictionary    Country    default
+    ${sStatus}    Check Search Checkbox    ${dct}
+    Run Keyword If    ${sStatus}    Click Element    ${button.alerts.showResults}
+    Wait Until Keyword Succeeds    1m    100ms    Any One Element Should Be Visible    //a[@title='Account Detail']    ${label.cases.noMatchingDataFound}
+    ${totalRows}=    Get Table Rows Count In IE Browser
+    @{countriesdisplayed}=    Get Table Values Into List By Down Arrow    ${table.alerts.matchingRows}    ${table.alerts.searchResults.knob}    ${table.alerts.searchResults.barContainer}    Country    False
+    ...    ${totalRows}
+    : FOR    ${country}    IN    @{countriesdisplayed}
+    \    Should Contain    ${WATCHlist}    ${country}    Countries in OFAC list are not displayed on Search results area.
+    Logout
+    [Teardown]    Stop Application
+
+RAAuto-94:Validate the content copy from a Record using Select Text-API ID:26810
+    [Documentation]    Version 1
+    ...
+    ...    Summary : \ Verify the contents in the column can be copied to another application, such as notepad or excel.
+    ...
+    ...    FB#3049: Add Copy function to RA Right Click Menu
+    ...
+    ...    FB#3226: copy to clipboard issue
+    ...
+    ...    1. Performed Right click action on a record and read the content of a cell and copied the content into clipboard.
+    ...
+    ...    2. Verified the content on Clipboard and the content copied from RiskApp are same.
+    Login to Application    ${SUBDOMAINURL}    ${alertsUser}    ${alertsPassword}
+    MenuSelect    Alerts
+    Wait Until Page Contains Element    ${button.alerts.showResults}    ${DELAY}
+    Click Element    ${button.alerts.showResults}
+    Wait Until Page Contains Element    ${button.alerts.export}    ${DELAY}
+    Sleep    20s
+    Comment    Performed Right click action and read the content and copied the content into clipboard.
+    Rest Default Columns
+    Sleep    3s
+    Wait For Element Visible    ${table.matchingRows}    ${DELAY}
+    ${colNum}=    Get Column No From Table    ${table.matchingRows}    Account
+    ${text}=    Get Cell Value    ${table.matchingRows}    ${colNum}    2
+    ${colNumber}=    Evaluate    ${colNum}-1
+    Wait For Element Visible    //div[@id='ajs_T_AlertsTable_tAlerts_F_AlertsTable_tAlerts_cell_R1C${colNumber}']/div/span    ${DELAY}
+    Open Context Menu    //div[@id='ajs_T_AlertsTable_tAlerts_F_AlertsTable_tAlerts_cell_R1C${colNumber}']
+    Wait For Element Visible    ${link.contextMenu.selectText}
+    Click Element    ${link.contextMenu.selectText}
+    Wait For Element Visible    ${text.alerts.searchResults.recordSelectTextArea}    ${DELAY}
+    Press Control And Key    ${text.alerts.searchResults.recordSelectTextArea}    c
+    ${contentOnClipboard}=    CommonLibrary.Get Text    wjst_cellFieldContent
+    Comment    Verified the content on Clipboard and the content copied from RiskApp are same.
+    Run Keyword If    '${contentOnClipboard}'!='${text}'    Fail    Content on Clip board is not equal to the value copied from RiskApp.
+    Logout
+    [Teardown]    Stop Application
+
+RAAuto-84: Validate Highlighting Row Selection For Alerts Page-API ID:26766
+    [Documentation]    Summary
+    ...
+    ...    Verify row selection functions, accordingly.
+    ...
+    ...    1. Verifies the selected record from the search results table on Alerts page is Highlighted.
+    ...
+    ...    2. Verifies the Mouse Hovered record from the search results table on Alerts page is Highlighted in grey color.
+    : FOR    ${iCount}    IN RANGE    1    3
+    \    ${bStatus}    Run Keyword And Return Status    Validate Highlighting Row Selection For Alerts Page
+    \    Exit For Loop If    ${bStatus}
+    Run Keyword Unless    ${bStatus}    Fail    Testcase got failed after 2 Iterations.
+
+RAAuto-84: Validate Highlighting Row Selection For FraudMap-API ID:26844
+    [Documentation]    Summary
+    ...
+    ...    Verify row selection functions, accordingly.
+    ...
+    ...    1. Verifies the selected record from the search results table on FraudMap page is Highlighted.
+    ...
+    ...    2. Verifies the Mouse Hovered record from the search results table on FraudMap page is Highlighted in grey color.
+    : FOR    ${iCount}    IN RANGE    1    3
+    \    ${bStatus}    Run Keyword And Return Status    Validate Highlighting Row Selection For FraudMap
+    \    Exit For Loop If    ${bStatus}
+    Run Keyword Unless    ${bStatus}    Fail    Testcase got failed after 2 Iterations.
+
+RAAuto-84: Validate Highlighting Row Selection For Cases Page-API ID:26847
+    [Documentation]    Summary
+    ...
+    ...    Verify row selection functions, accordingly.
+    ...
+    ...
+    ...    1. Verifies the selected record from the search results table on Cases page is Highlighted.
+    ...
+    ...    2. Verifies the Mouse Hovered record from the search results table on Cases page is Highlighted in grey color.
+    : FOR    ${iCount}    IN RANGE    1    3
+    \    ${bStatus}    Run Keyword And Return Status    Validate Highlighting Row Selection For Cases Page
+    \    Exit For Loop If    ${bStatus}
+    Run Keyword Unless    ${bStatus}    Fail    Testcase got failed after 2 Iterations.
+
+RAAuto-89:Validate the Advanced Search by the countries in OFAC List-API ID:26784
+    [Documentation]    1. In RA ALERTS page, expand Advanced Search area
+    ...
+    ...    2. Move the cursor to the right of the Country search field. A watch list icon should appear.
+    ...
+    ...    3. Click on the watch list icon. The Watch List dialog box will appear.
+    ...
+    ...    4. Verify there are four options in the drop-down list: OFAC only, Watch list, non-US only, and New...
+    ...
+    ...    5. In the Watchlist drop-down, select OFAC only.
+    ...
+    ...    6. Scroll down the list. Verify the Values in the list
+    ...
+    ...    7. Click the Select button
+    ...
+    ...    8. This action should take you back to the Advance Search and the selected watch list name with brackets enclosed, should appear in the Country search field.
+    ...
+    ...    9. Mark the Country checkbox
+    ...
+    ...    10. Select the date range as "All Time" and Risk level = All, and Status = Not Viewed, Viewed, Case Open.
+    ...
+    ...    11. Click Show Results.
+    ...
+    ...    12. In ViginiaCreditUnion-Retail the results should be displayed according to the Select item from Watch List Box.
+    Login to Application    ${SUBDOMAINURL}    ${alertsUser}    ${alertsPassword}
+    MenuSelect    Alerts
+    Comment    Selected Date dropdown item as "All Time" , Risk Level = All , Statuses= Not Viewed, Viewed, Case Open.
+    Select From List By Label    ${list.alerts.date}    All Time
+    Wait For Dropdown Selection    ${list.alerts.date}    All Time
+    Select Risk In Basic Search    Red
+    Sleep    3s
+    ${statusesCount}=    Get Matching Xpath Count    ${buttons.alerts.status}
+    : FOR    ${temp}    IN RANGE    1    ${statusesCount} + 1
+    \    ${title}=    Get Element Attribute Value    ${buttons.alerts.status}[${temp}]@title
+    \    ${class}=    Get Element Attribute Value    ${buttons.alerts.status}[${temp}]@class
+    \    Run Keyword If    '${class}'!='selected' and '${title}'=='Not Viewed'    Click Element    ${buttons.alerts.status}[${temp}]
+    \    Run Keyword If    '${class}'!='selected' and '${title}'=='Viewed'    Click Element    ${buttons.alerts.status}[${temp}]
+    \    Run Keyword If    '${class}'!='selected' and '${title}'=='Case Open'    Click Element    ${buttons.alerts.status}[${temp}]
+    \    Run Keyword If    '${class}'=='selected' and '${title}'=='Case Closed'    Click Element    ${buttons.alerts.status}[${temp}]
+    \    Run Keyword If    '${class}'=='selected' and '${title}'=='Dismissed'    Click Element    ${buttons.alerts.status}[${temp}]
+    Sleep    1s
+    Comment    Clicked on "Advance Search" button and Performed Mouse over \ action on Country text box.
+    Click Element    ${button.alerts.advanceSearch}
+    Sleep    3s
+    Wait Until Page Contains Element    ${text.advanceSearch.country}    10000
+    Mouse Over    ${text.advanceSearch.country}
+    Mouse Over    ${text.advanceSearch.country}
+    Comment    Verified the Watch List icon presence after Mouse Over on Country filed and clicked on "Watch List" Icon.
+    Wait Until Page Contains Element    ${image.advanceSearch.watchListIcon}    ${DELAY}    Watch List icon is not displayed beside country text box.
+    Simulate Or Click Element    ${image.advanceSearch.watchListIcon}
+    Comment    Verified the Watch List for Country box presence after clicking on"Watch List" Icon.
+    Wait Until Page Contains Element    ${list.watchlistDialogForm.watchListDropdown}    ${DELAY}    Watch List for country is not displayed on afetr clicking the Watch Icon.
+    Comment    Verified the Watch List Dropdown items displayed are same as (Select...,OFAC only,Watch list,non-US only,New...)on Watch Lists for Country pop up window.
+    ${actuallistitems}=    Get List Items    ${list.watchlistDialogForm.watchListDropdown}
+    ${expectedlistitems}=    Create List    Select...    OFAC only    Watch list    non-US only    New...
+    Sort List    ${expectedlistitems}
+    Sort List    ${actuallistitems}
+    List Should Contain Sub List    ${actuallistitems}    ${expectedlistitems}
+    Comment    Selected the dropdown item as "OFAC List" and Read the values displayed under text area for the "OFAC List" selection.
+    Select From List By Label    ${list.watchlistDialogForm.watchListDropdown}    OFAC only
+    Wait For Element Visible    ${text.watchlistDialogForm.countrylistTextArea}    ${DELAY}
+    ${OFAClist}=    CommonLibrary.Get Text    ${text.watchlistDialogForm.countrylistTextArea}
+    Log    ${OFAClist}
+    Click Element    ${button.watchlistDialogForm.Select}
+    Wait For Element Visible    ${text.advanceSearch.country}    ${DELAY}
+    Sleep    4s
+    Wait For Element Visible    ${textbox.advanceSearch.Country}    ${DELAY}
+    Click Element    ${textbox.advanceSearch.Country}
+    Press Tab Key    ${textbox.advanceSearch.Country}
+    Sleep    3s
+    Wait For Element Visible    ${button.alerts.showResults}    ${DELAY}
+    Comment    Clicked on "Search Results" button and verified the results are displayed the same country values displayed on Watch List box.
+    Click Element    ${button.alerts.showResults}
+    Wait Until Keyword Succeeds    1m    100ms    Any One Element Should Be Visible    //a[@title='Account Detail']    ${label.cases.noMatchingDataFound}
+    Sleep    20s
+    ${dct}    Create Dictionary    Country    default
+    ${sStatus}    Check Search Checkbox    ${dct}
+    Run Keyword If    ${sStatus}    Click Element    ${button.alerts.showResults}
+    Comment    ${checkedStatus}=    Get Element Attribute Value    ${checkbox.advanceSearch.Country}
+    Comment    Run Keyword If    '${checkedStatus}'!='true'    Click Element    //div[@id='advanced']//label[text()='Country']
+    Comment    Run Keyword If    '${checkedStatus}'!='true'    Click Element    ${button.alerts.showResults}
+    Wait Until Keyword Succeeds    1m    100ms    Any One Element Should Be Visible    //a[@title='Account Detail']    ${label.cases.noMatchingDataFound}
+    ${totalRows}=    Run Keyword If    '${BROWSER}'=='ie'    Get Table Rows Count In IE Browser    ELSE    Get Table Rows Count By Scrolling    ${table.alerts.searchResults.knob}
+    ...    ${table.alerts.searchResults.barContainer}
+    @{countriesdisplayed}=    Get Table Values Into List By Down Arrow    ${table.alerts.matchingRows}    ${table.alerts.searchResults.knob}    ${table.alerts.searchResults.barContainer}    Country    False
+    ...    ${totalRows}
+    : FOR    ${country}    IN    @{countriesdisplayed}
+    \    Should Contain    ${OFAClist}    ${country}    Countries in OFAC list are not displayed on Search results area.
+    Logout
+    [Teardown]    Stop Application
+
+RAAuto-88:Validate the Advanced Search by the Non US countries only-API ID:26781
+    [Documentation]    1. In RA ALERTS page, expand Advanced Search area
+    ...
+    ...    2. Move the cursor to the right of the Country search field. A watch list icon should appear.
+    ...
+    ...    3. Click on the watch list icon. The Watch List dialog box will appear.
+    ...
+    ...    4. Verify there are four options in the drop-down list: OFAC only, Watch list, non-US only, and New...
+    ...
+    ...    5. In the Watchlist drop-down, select OFAC only.
+    ...
+    ...    6. Scroll down the list. Verify the Values in the list
+    ...
+    ...    7. Click the Select button
+    ...
+    ...    8. This action should take you back to the Advance Search and the selected watch list name with brackets enclosed, should appear in the Country search field.
+    ...
+    ...    9. Mark the Country checkbox
+    ...
+    ...    10. Select the date range as "All Time" and Risk level = All, and Status = Not Viewed, Viewed, Case Open.
+    ...
+    ...    11. Click Show Results.
+    ...
+    ...    12. In ViginiaCreditUnion-Retail the results should be displayed according to the Select item from Watch List Box.
+    Login to Application    ${SUBDOMAINURL}    ${alertsUser}    ${alertsPassword}
+    MenuSelect    Alerts
+    Comment    Selected Date dropdown item as "All Time" , Risk Level = All , Statuses= Not Viewed, Viewed, Case Open.
+    Select From List By Label    ${list.alerts.date}    All Time
+    Wait For Dropdown Selection    ${list.alerts.date}    All Time
+    Select Risk In Basic Search    ALL
+    Sleep    ${DELAY5}
+    Wait For Element Visible    ${buttons.alerts.status}    ${DELAY}
+    ${statusesCount}=    Get Matching Xpath Count    ${buttons.alerts.status}
+    : FOR    ${temp}    IN RANGE    1    ${statusesCount} + 1
+    \    ${title}=    Get Element Attribute Value    ${buttons.alerts.status}[${temp}]@title
+    \    ${class}=    Get Element Attribute Value    ${buttons.alerts.status}[${temp}]@class
+    \    Run Keyword If    '${class}'!='selected' and '${title}'=='Not Viewed'    Click Element    ${buttons.alerts.status}[${temp}]
+    \    Run Keyword If    '${class}'!='selected' and '${title}'=='Viewed'    Click Element    ${buttons.alerts.status}[${temp}]
+    \    Run Keyword If    '${class}'!='selected' and '${title}'=='Case Open'    Click Element    ${buttons.alerts.status}[${temp}]
+    \    Run Keyword If    '${class}'=='selected' and '${title}'=='Case Closed'    Click Element    ${buttons.alerts.status}[${temp}]
+    \    Run Keyword If    '${class}'=='selected' and '${title}'=='Dismissed'    Click Element    ${buttons.alerts.status}[${temp}]
+    Sleep    1s
+    Comment    Clicked on "Advance Search" button and Performed Mouse over \ action on Country text box.
+    Simulate Or Click Element    ${button.alerts.advanceSearch}
+    Sleep    3s
+    Wait Until Page Contains Element    ${text.advanceSearch.country}    10000
+    Mouse Over    ${text.advanceSearch.country}
+    Mouse Over    ${text.advanceSearch.country}
+    Comment    Verified the Watch List icon presence after Mouse Over on Country filed and clicked on "Watch List" Icon.
+    Wait Until Page Contains Element    ${image.advanceSearch.watchListIcon}    ${DELAY}    Watch List icon is not displayed beside country text box.
+    Simulate Or Click Element    ${image.advanceSearch.watchListIcon}
+    Wait Until Page Contains Element    ${list.watchlistDialogForm.watchListDropdown}    ${DELAY}    Watch List for country is not displayed on afetr clicking the Watch Icon.
+    Comment    Verified the Watch List Dropdown items displayed are same as (Select...,OFAC only,Watch list,non-US only,New...)on Watch Lists for Country pop up window.
+    ${actuallistitems}=    Get List Items    ${list.watchlistDialogForm.watchListDropdown}
+    ${expectedlistitems}=    Create List    Select...    OFAC only    non-US only    Watch list    New...
+    Sort List    ${actuallistitems}
+    Sort List    ${expectedlistitems}
+    List Should Contain Sub List    ${actuallistitems}    ${expectedlistitems}
+    Comment    Selected the dropdown item as "non-US only" and Read the values displayed under text area for the "non-US only" selection.
+    Select From List By Label    ${list.watchlistDialogForm.watchListDropdown}    non-US only
+    Wait Until Page Contains Element    ${text.watchlistDialogForm.countrylistTextArea}    ${DELAY}    OFAC list is not displayed on Watch List for Country content box.
+    ${nonUSlist}=    CommonLibrary.Get Text    ${text.watchlistDialogForm.countrylistTextArea}
+    Log    ${nonUSlist}
+    Click Element    ${button.watchlistDialogForm.Select}
+    Wait Until Page Contains Element    ${text.advanceSearch.country}    ${DELAY}
+    Sleep    1s
+    Wait Until Page Contains Element    ${textbox.advanceSearch.Country}    ${DELAY}
+    Click Element    ${textbox.advanceSearch.Country}
+    Press Tab Key    ${textbox.advanceSearch.Country}
+    Wait Until Page Contains Element    ${button.alerts.showResults}    10s
+    Comment    Clicked on "Search Results" button and verified the results are displayed the same country values displayed on Watch List box.
+    Click Element    ${button.alerts.showResults}
+    Wait Until Keyword Succeeds    1m    100ms    Any One Element Should Be Visible    //a[@title='Account Detail']    ${label.cases.noMatchingDataFound}
+    ${dct}    Create Dictionary    Country    default
+    ${sStatus}    Check Search Checkbox    ${dct}
+    Run Keyword If    ${sStatus}    Click Element    ${button.alerts.showResults}
+    Wait Until Keyword Succeeds    1m    100ms    Any One Element Should Be Visible    //a[@title='Account Detail']    ${label.cases.noMatchingDataFound}
+    ${totalRows}=    Run Keyword If    '${BROWSER}'=='ie'    Get Table Rows Count In IE Browser    ELSE    Get Table Rows Count By Scrolling    ${table.alerts.searchResults.knob}
+    ...    ${table.alerts.searchResults.barContainer}
+    @{countriesdisplayed}=    Get Table Values Into List By Down Arrow    ${table.alerts.matchingRows}    ${table.alerts.searchResults.knob}    ${table.alerts.searchResults.barContainer}    Country    False
+    ...    ${totalRows}
+    : FOR    ${country}    IN    @{countriesdisplayed}
+    \    Should Contain    ${nonUSlist}    ${country}    Countries in OFAC list are not displayed on Search results area.
+    Logout
+    [Teardown]    Stop Application
+
+RAAuto-54:Validate the Hover Box content for Status Buttons-API ID:26673
+    [Documentation]    In the display of results,
+    ...
+    ...    1) the user can hover over the truncated value to see the full value in a hover text box.
+    ...
+    ...    2) the use can hover over the STATUS filter to see the names of the filters.
+    ...
+    ...    3) the user can see the full description of the abbreviated activity.
+    Login to Application    ${SUBDOMAINURL}    ${alertsUser}    ${alertsPassword}
+    MenuSelect    Alerts
+    Mouse Over    ${button.alerts.notViewedCheckedStatus}
+    ${buttonTitle}=    Get Element Attribute Value    ${label.alerts.status.notViewed.tooltip}
+    Run Keyword If    '${buttonTitle}'!='Not Viewed'    Fail    The Not Viewed Status Tool Tip is not displayed
+    Mouse Over    ${button.alerts.ViewedCheckedStatus}
+    ${buttonTitle}=    Get Element Attribute Value    ${label.alerts.status.Viewed.tooltip}
+    Run Keyword If    '${buttonTitle}'!='Viewed'    Fail    The Viewed Status Tool Tip is not displayed
+    Mouse Over    ${button.alerts.caseOpenCheckedStatus}
+    ${buttonTitle}=    Get Element Attribute Value    ${label.alerts.status.caseOpen.tooltip}
+    Run Keyword If    '${buttonTitle}'!='Case Open'    Fail    The Case Open Status Tool Tip is not displayed
+    Mouse Over    ${button.alerts.caseClosedCheckedStatus}
+    ${buttonTitle}=    Get Element Attribute Value    ${label.alerts.status.caseClosed.tooltip}
+    Run Keyword If    '${buttonTitle}'!='Case Closed'    Fail    The Case Closed Status Tool Tip is not displayed
+    Mouse Over    ${button.alerts.dismissedCheckedStatus}
+    ${buttonTitle}=    Get Element Attribute Value    ${label.alerts.status.dismissed.tooltip}
+    Run Keyword If    '${buttonTitle}'!='Dismissed'    Fail    The Dismissed Status Tool Tip is not displayed
+    ${filters}=    Create Dictionary    City    richmond    Session Range    20
+    Enter And Validate Advanced Search Fields    ${filters}
+    Wait Until Keyword Succeeds    1m    100ms    Any One Element Should Be Visible    //a[@title='View Case']    ${label.cases.noMatchingDataFound}
+    Sleep    2s
+    ${bstatus}=    Verify Element Present    ${label.alerts.noMatchingDataFound}
+    Run Keyword If    ${bstatus}==True    Set Test Message    There are no Macthing Results for Non US Only Countries
+    ${bstatus}=    Verify Element Present    ${label.alerts.searchResults.riskFactorColumnFirstValue}
+    Run Keyword If    ${bstatus}!=True    Set Test Message    Risk Factor Column is Not displayed
+    ${txtVal}=    CommonLibrary.Get Text    ${label.alerts.searchresults.riskfactorcolumnfirstvalue}/span
+    ${val}=    Set Variable If    ${bstatus}==True    ${txtVal}
+    Reload Page
+    Sleep    4s
+    Run Keyword If    ${bstatus}==True    Mouse Over    ${label.alerts.searchResults.riskFactorColumnFirstValue}
+    Run Keyword If    ${bstatus}==True    Mouse Over    ${label.alerts.searchResults.riskFactorColumnFirstValue}
+    ${tooltip}=    CommonLibrary.Get Text    ${text.tooltip}
+    Should Contain    ${tooltip}    ${val}    The Displayed value is not available in ToolTip
+    ${lenval}=    Get Length    ${val}
+    ${lentooltip}=    Get Length    ${tooltip}
+    Run Keyword Unless    ${lentooltip}>=${lenval}    Fail    The Length of Tool Tip Content is not equal or greater than the table Cell Value
+    ${tableRowsCount}=    Run Keyword If    '${BROWSER}'=='ie'    Get Table Rows Count In IE Browser    ELSE    Get Table Rows Count By Scrolling    ${table.alerts.searchResults.knob}
+    ...    ${table.alerts.searchResults.barContainer}
+    : FOR    ${iCount}    IN RANGE    1    ${tableRowsCount}+1
+    \    Sleep    100ms
+    \    Comment    Get activities of each selected record
+    \    ${activities}=    CommonLibrary.Get Activities From Selected Record    Activity
+    \    ${length}=    Get Length    ${activities}
+    \    Run Keyword If    ${length}!=0    Set Test Message    Activity column in displated with description.
+    ${tableListFromRiskApp}=    Get Table Values Into List By Down Arrow    //div[@id="tAlerts"]/div/table//table    ${table.alerts.searchResults.knob}    ${table.alerts.searchResults.barContainer}    Session    False
+    ...    ${tableRowsCount}
+    Logout
+    Stop Application
+    Login to Application    ${LOGIN URL}    ${VALID USER}    ${VALID PASSWD}
+    Select From List By Value    ${list.hostname}    (FD) VirginiaCreditUnion
+    Wait For Dropdown Selection    ${list.hostname}    (FD) VirginiaCreditUnion
+    Wait For Please Wait Option
+    Sleep    5s
+    MenuSelect    Alerts
+    Enter And Validate Advanced Search Fields    ${filters}
+    Wait Until Keyword Succeeds    1m    100ms    Any One Element Should Be Visible    //a[@title='View Case']    ${label.cases.noMatchingDataFound}
+    Sleep    2s
+    ${tableRowsCount}=    Run Keyword If    '${BROWSER}'=='ie'    Get Table Rows Count In IE Browser    ELSE    Get Table Rows Count By Scrolling    ${table.alerts.searchResults.knob}
+    ...    ${table.alerts.searchResults.barContainer}
+    ${tableListFromDataBase}=    Get Table Values Into List By Down Arrow    //div[@id="tAlerts"]/div/table//table    ${table.alerts.searchResults.knob}    ${table.alerts.searchResults.barContainer}    Activity    False
+    ...    ${tableRowsCount}
+    List Comp By Sequence    ${tableListFromDataBase}    ${tableListFromRiskApp}
+    Logout
+    [Teardown]    Stop Application
+
+RAAuto-56:Validate the Search By Today Date-API ID:26683
+    [Documentation]    1. Select Date = Today.
+    ...
+    ...    2.Validating "From" and "To" date values with Current date.
+    ...
+    ...    3.Retrieving \ the count of sessions, countries and states in RiskApp
+    ...
+    ...    4.Compare the results against the database with what is displayed in RiskApp.
+    Login to Application    ${SUBDOMAINURL}    ${alertsUser}    ${alertsPassword}
+    MenuSelect    Alerts
+    Select From List By Label    ${list.alerts.date}    Today
+    Wait For Dropdown Selection    ${list.alerts.date}    Today
+    Sleep    ${DELAY5}
+    Comment    Validating the "From" and "To" date Values with Current Date.
+    Wait Until Page Contains Element    //input[@id='mainForm:startDateInputDate']    ${DELAY}
+    Wait Until Element Is Visible    //input[@id='mainForm:startDateInputDate']    ${DELAY}
+    ${today}=    Get Current Date
+    : FOR    ${index}    IN RANGE    0    5
+    \    ${startdate}=    Get Element Attribute Value    ${text.reports.fromDateValue}
+    \    Exit For Loop If    '${startdate}'!='${EMPTY}'
+    \    Sleep    3s
+    ${startdate}=    Get Element Attribute Value    ${text.reports.fromDateValue}
+    Log    ${startdate}
+    ${enddate}=    Get Element Attribute Value    ${text.reports.toDateValue}
+    Log    ${enddate}
+    Run Keyword And Continue On Failure    Should Be Equal    ${startdate}    ${enddate}    The From Date and To Date are Not Same
+    Should Be Equal    ${today}    ${startdate}    The From Date is Not Today
+    Click Element    ${button.alerts.showResults}
+    Sleep    12s
+    Comment    Verifying search results found or not.
+    ${bStatus}=    Verify Element Visible    ${label.table.noMatchingDataFound}
+    Run Keyword If    ${bStatus}==True    Set Test Message    No Matching Data Found
+    ${actualCount}=    Run Keyword If    ${bStatus}!=True    The Count Sessions Countries and States for Today
+    Logout
+    Stop Application
+    Login to Application    ${LOGIN URL}    ${VALID USER}    ${VALID PASSWD}
+    Select From List By Label    ${list.hostname}    (FD) VirginiaCreditUnion
+    Wait For Dropdown Selection    ${list.hostname}    (FD) VirginiaCreditUnion
+    Wait For Please Wait Option
+    Sleep    2s
+    MenuSelect    Alerts
+    Sleep    2s
+    Select Date In Basic Search    Today
+    Sleep    2s
+    : FOR    ${index}    IN RANGE    0    5
+    \    ${startdate}=    Get Element Attribute Value    ${text.reports.fromDateValue}
+    \    Exit For Loop If    '${startdate}'!='${EMPTY}'
+    \    Sleep    3s
+    Comment    Validating the "From" and "To" date Values with Current Date.
+    ${startdate}=    Get Element Attribute Value    ${text.reports.fromDateValue}
+    Log    ${startdate}
+    ${enddate}=    Get Element Attribute Value    ${text.reports.toDateValue}
+    Log    ${enddate}
+    Run Keyword And Continue On Failure    Should Be Equal    ${startdate}    ${enddate}    The From Date and To Date are Not Same
+    ${today}=    Get Current Date
+    Should Be Equal    ${today}    ${startdate}    The From Date is Not Today
+    Click Element    ${button.alerts.showResults}
+    Sleep    12s
+    Comment    Verifying search results found or not.
+    ${bStatus}=    Verify Element Visible    ${label.table.noMatchingDataFound}
+    Run Keyword If    ${bStatus}==True    Set Test Message    No Matching Data Found
+    ${expectedCount}=    Run Keyword If    ${bStatus}!=True    The Count Sessions Countries and States for Today
+    Should Be Equal    ${actualCount}    ${expectedCount}
+    Logout
+    [Teardown]    Stop Application
+
+RAAuto-57:Validate the Search By Last Days and All Time-API ID:26687
+    [Documentation]    Version 1
+    ...
+    ...    Summary: Validate the Search By Last Days and All Time
+    ...
+    ...    1-57 \ Filter by Date = Last 2 Days
+    ...    1-58 \ Filter by Date = Last 4 Days
+    ...    1-59 \ Filter by Date = Last 7 Days
+    ...    1-60 \ Filter by Date = Last 31 Days
+    ...    1-63 \ Filter by Date = All Time
+    Login to Application    ${SUBDOMAINURL}    ${alertsUser}    ${alertsPassword}
+    MenuSelect    Alerts
+    Wait Until Page Contains Element    ${list.alerts.date}    ${DELAY}
+    ${dropdown}=    Set Variable    Last 2 Days    Last 4 Days    Last 7 Days    Last 31 Days
+    ${dates}=    Set Variable    1    3    6    30
+    @{dropdown}=    Set Variable    ${dropdown}
+    @{dates}=    Set Variable    ${dates}
+    ${actualRecordsList}=    Create List
+    : FOR    ${iCounter}    IN RANGE    0    2
+    \    Select From List By Label    ${list.alerts.date}    @{dropdown}[${iCounter}]
+    \    Wait For Dropdown Selection    ${list.alerts.date}    @{dropdown}[${iCounter}]
+    \    Wait Until Element Is Visible    //select[@id='mainForm:dateFilter']/option[@selected='selected']    ${DELAY}
+    \    ${startdate}=    Get Element Attribute Value    ${text.reports.fromDateValue}
+    \    Log    ${startdate}
+    \    ${2daysago}=    Get From Date    @{dates}[${iCounter}]
+    \    Run Keyword And Continue On Failure    Should Be Equal    ${startdate}    ${2daysago}    The From Date is not @{dropdown}[${iCounter}] \ ago
+    \    ${enddate}=    Get Element Attribute Value    ${text.reports.toDateValue}
+    \    Log    ${enddate}
+    \    ${today}=    Get Current Date
+    \    Run Keyword And Continue On Failure    Should Be Equal    ${today}    ${enddate}    The End Date is not Today
+    \    Log    The search for records from @{dropdown}[${iCounter}] is Done
+    \    Click Element    ${button.alerts.showResults}
+    \    Sleep    15s
+    \    ${tableRowsCount}=    Run Keyword If    '${BROWSER}'=='ie'    Get Table Rows Count In IE Browser    ELSE    Get Table Rows Count By Scrolling
+    \    ...    ${table.alerts.searchResults.knob}    ${table.alerts.searchResults.barContainer}
+    \    ${actualRecords}=    Run Keyword If    '${tableRowsCount}'!='0'    Get Records of All Columns from Table    ${tableRowsCount}    ${table.alerts.matchingRows}
+    \    Append To List    ${actualRecordsList}    ${actualRecords}
+    Select From List By Label    ${list.alerts.date}    All Time
+    Wait For Dropdown Selection    ${list.alerts.date}    All Time
+    Wait Until Element Is Visible    //select[@id='mainForm:dateFilter']/option[@selected='selected']    ${DELAY}
+    : FOR    ${iCounter}    IN RANGE    1    5
+    \    ${attVal}    Get Element Attribute Value    ${text.reports.fromDateValue}
+    \    Exit For Loop If    '${attVal}'=='${EMPTY}'
+    \    Sleep    3s
+    ${startdate}=    Get Element Attribute Value    ${text.reports.fromDateValue}
+    Run Keyword And Continue On Failure    Should Be Equal    ${startdate}    ${EMPTY}    The From Date is not EMPTY
+    ${enddate}=    Get Element Attribute Value    ${text.reports.toDateValue}
+    Run Keyword And Continue On Failure    Should Be Equal    ${enddate}    ${EMPTY}    The To Date is not EMPTY
+    Log    The All Time records are searched
+    Set Test Message    The Search for Last Days and All Time records are searched
+    ${filters}=    Create Dictionary    City    norfolk    Session Range    -1    Provider
+    ...    verizon
+    Enter And Validate Advanced Search Fields    ${filters}
+    ${tableRowsCount}=    Run Keyword If    '${BROWSER}'=='ie'    Get Table Rows Count In IE Browser    ELSE    Get Table Rows Count By Scrolling    ${table.alerts.searchResults.knob}
+    ...    ${table.alerts.searchResults.barContainer}
+    ${actualRecords}=    Run Keyword If    '${tableRowsCount}'!='0'    Get Records of All Columns from Table    ${tableRowsCount}    ${table.alerts.matchingRows}
+    Append To List    ${actualRecordsList}    ${actualRecords}
+    Logout
+    Stop Application
+    Login to Application    ${LOGIN URL}    ${VALID USER}    ${VALID PASSWD}
+    Select From List By Label    ${list.hostname}    (FD) VirginiaCreditUnion
+    Sleep    2s
+    MenuSelect    Alerts
+    Sleep    2s
+    Wait Until Page Contains Element    ${list.alerts.date}    30s
+    ${dropdown}=    Set Variable    Last 2 Days    Last 4 Days    Last 7 Days    Last 31 Days
+    ${dates}=    Set Variable    1    3    6    30
+    @{dropdown}=    Set Variable    ${dropdown}
+    @{dates}=    Set Variable    ${dates}
+    ${expectedRecordsList}=    Create List
+    : FOR    ${iCounter}    IN RANGE    0    2
+    \    Select From List By Label    ${list.alerts.date}    @{dropdown}[${iCounter}]
+    \    Wait For Dropdown Selection    ${list.alerts.date}    @{dropdown}[${iCounter}]
+    \    ${startdate}=    Get Element Attribute Value    ${text.reports.fromDateValue}
+    \    Log    ${startdate}
+    \    ${2daysago}=    Get From Date    @{dates}[${iCounter}]
+    \    Run Keyword And Continue On Failure    Should Be Equal    ${startdate}    ${2daysago}    The From Date is not @{dropdown}[${iCounter}] \ ago
+    \    ${enddate}=    Get Element Attribute Value    ${text.reports.toDateValue}
+    \    Log    ${enddate}
+    \    ${today}=    Get Current Date
+    \    Run Keyword And Continue On Failure    Should Be Equal    ${today}    ${enddate}    The End Date is not Today
+    \    Log    The search for records from @{dropdown}[${iCounter}] is Done
+    \    Click Element    ${button.alerts.showResults}
+    \    Sleep    15s
+    \    ${tableRowsCount}=    Run Keyword If    '${BROWSER}'=='ie'    Get Table Rows Count In IE Browser    ELSE    Get Table Rows Count By Scrolling
+    \    ...    ${table.alerts.searchResults.knob}    ${table.alerts.searchResults.barContainer}
+    \    ${actualRecords}=    Run Keyword If    '${tableRowsCount}'!='0'    Get Records of All Columns from Table    ${tableRowsCount}    ${table.alerts.matchingRows}
+    \    Append To List    ${expectedRecordsList}    ${actualRecords}
+    Select From List By Label    ${list.alerts.date}    All Time
+    Wait For Dropdown Selection    ${list.alerts.date}    All Time
+    : FOR    ${iCounter}    IN RANGE    1    5
+    \    ${attVal}    Get Element Attribute Value    ${text.reports.fromDateValue}
+    \    Exit For Loop If    '${attVal}'=='${EMPTY}'
+    \    Sleep    3s
+    ${startdate}=    Get Element Attribute Value    ${text.reports.fromDateValue}
+    Run Keyword And Continue On Failure    Should Be Equal    ${startdate}    ${EMPTY}    The From Date is not EMPTY
+    ${enddate}=    Get Element Attribute Value    ${text.reports.toDateValue}
+    Run Keyword And Continue On Failure    Should Be Equal    ${enddate}    ${EMPTY}    The To Date is not EMPTY
+    Log    The All Time records are searched
+    Set Test Message    The Search for Last Days and All Time records are searched
+    ${filters}=    Create Dictionary    City    norfolk    Session Range    -1    Provider
+    ...    verizon
+    Enter And Validate Advanced Search Fields    ${filters}
+    Enter And Validate Advanced Search Fields    ${filters}
+    ${tableRowsCount}=    Run Keyword If    '${BROWSER}'=='ie'    Get Table Rows Count In IE Browser    ELSE    Get Table Rows Count By Scrolling    ${table.alerts.searchResults.knob}
+    ...    ${table.alerts.searchResults.barContainer}
+    ${actualRecords}=    Run Keyword If    '${tableRowsCount}'!='0'    Get Records of All Columns from Table    ${tableRowsCount}    ${table.alerts.matchingRows}
+    Append To List    ${expectedRecordsList}    ${actualRecords}
+    Should Be Equal    ${actualRecordsList}    ${expectedRecordsList}
+    Logout
+    [Teardown]    Stop Application
+
+RAAuto-61:Validate the Search By Previous Week and Month-API ID:26690
+    [Documentation]    Version 1
+    ...    Summary: Verify the Previous Week Search and Previous Month Search
+    ...
+    ...    1-63 \ Filter by Date = All Time
+    Login to Application    ${SUBDOMAINURL}    ${alertsUser}    ${alertsPassword}
+    MenuSelect    Alerts
+    ${actualRecordsList}=    CreateList
+    Wait Until Page Contains Element    ${list.alerts.date}    ${DELAY}
+    Select From List By Label    ${list.alerts.date}    Previous Week
+    Wait For Dropdown Selection    ${list.alerts.date}    Previous Week
+    ${todate}=    Get Element Attribute Value    ${text.reports.toDateValue}
+    ${prevoiusweekLastdate}=    Get Last Week Last Date
+    Run Keyword And Continue On Failure    Should Be Equal    ${todate}    ${prevoiusweekLastdate}    The Previous Week Last Date is not Displayed
+    ${fromdate}=    Get Element Attribute Value    ${text.reports.fromDateValue}
+    ${previousweekfirstdate}=    Get Last Week First Date
+    Run Keyword And Continue On Failure    Should Be Equal    ${fromdate}    ${previousweekfirstdate}    The Previous Week First Date is not Displayed
+    ${tableRowsCount}=    Run Keyword If    '${BROWSER}'=='ie'    Get Table Rows Count In IE Browser    ELSE    Get Table Rows Count By Scrolling    ${table.alerts.searchResults.knob}
+    ...    ${table.alerts.searchResults.barContainer}
+    ${actualRecords}=    Run Keyword If    '${tableRowsCount}'!='0'    Get Records of All Columns from Table    ${tableRowsCount}    ${table.alerts.matchingRows}
+    Append To List    ${actualRecordsList}    ${actualRecords}
+    Comment    Verifies the first and last day o f prevoius month displayed or not
+    Select From List By Label    ${list.alerts.date}    Previous Month
+    Sleep    5s
+    ${todate}=    Get Element Attribute Value    ${text.reports.toDateValue}
+    ${previousmonthlastdate}=    Get Last Month Last Date
+    Run Keyword And Continue On Failure    Should Be Equal    ${todate}    ${previousmonthlastdate}    The Previous Months Last Date is not Displayed
+    ${fromdate}=    Get Element Attribute Value    ${text.reports.fromDateValue}
+    ${previousmonthfirstdate}=    Get Last Month First Date
+    Run Keyword And Continue On Failure    Should Be Equal    ${fromdate}    ${previousmonthfirstdate}    The Previous Months First Date is not Displayed
+    Set Test Message    The Search for Previous Week and Month is Done
+    ${tableRowsCount}=    Run Keyword If    '${BROWSER}'=='ie'    Get Table Rows Count In IE Browser    ELSE    Get Table Rows Count By Scrolling    ${table.alerts.searchResults.knob}
+    ...    ${table.alerts.searchResults.barContainer}
+    ${actualRecords}=    Run Keyword If    '${tableRowsCount}'!='0'    Get Records of All Columns from Table    ${tableRowsCount}    ${table.alerts.matchingRows}
+    Append To List    ${actualRecordsList}    ${actualRecords}
+    Logout
+    Stop Application
+    Login to Application    ${LOGIN URL}    ${VALID USER}    ${VALID PASSWD}
+    Select From List By Label    ${list.hostname}    (FD) VirginiaCreditUnion
+    Sleep    2s
+    MenuSelect    Alerts
+    Sleep    2s
+    ${expectedRecordsList}=    CreateList
+    Wait Until Page Contains Element    ${list.alerts.date}    ${DELAY}
+    Select From List By Label    ${list.alerts.date}    Previous Week
+    Sleep    5s
+    ${todate}=    Get Element Attribute Value    ${text.reports.toDateValue}
+    ${prevoiusweekLastdate}=    Get Last Week Last Date
+    Run Keyword And Continue On Failure    Should Be Equal    ${todate}    ${prevoiusweekLastdate}    The Previous Week Last Date is not Displayed
+    ${fromdate}=    Get Element Attribute Value    ${text.reports.fromDateValue}
+    ${previousweekfirstdate}=    Get Last Week First Date
+    Run Keyword And Continue On Failure    Should Be Equal    ${fromdate}    ${previousweekfirstdate}    The Previous Week First Date is not Displayed
+    ${tableRowsCount}=    Run Keyword If    '${BROWSER}'=='ie'    Get Table Rows Count In IE Browser    ELSE    Get Table Rows Count By Scrolling    ${table.alerts.searchResults.knob}
+    ...    ${table.alerts.searchResults.barContainer}
+    ${actualRecords}=    Run Keyword If    '${tableRowsCount}'!='0'    Get Records of All Columns from Table    ${tableRowsCount}    ${table.alerts.matchingRows}
+    Append To List    ${expectedRecordsList}    ${actualRecords}
+    Comment    Verifies the first and last day o f prevoius month displayed or not
+    Select From List By Label    ${list.alerts.date}    Previous Month
+    Sleep    5s
+    ${todate}=    Get Element Attribute Value    ${text.reports.toDateValue}
+    ${previousmonthlastdate}=    Get Last Month Last Date
+    Run Keyword And Continue On Failure    Should Be Equal    ${todate}    ${previousmonthlastdate}    The Previous Months Last Date is not Displayed
+    ${fromdate}=    Get Element Attribute Value    ${text.reports.fromDateValue}
+    ${previousmonthfirstdate}=    Get Last Month First Date
+    Run Keyword And Continue On Failure    Should Be Equal    ${fromdate}    ${previousmonthfirstdate}    The Previous Months First Date is not Displayed
+    Set Test Message    The Search for Previous Week and Month is Done
+    ${tableRowsCount}=    Run Keyword If    '${BROWSER}'=='ie'    Get Table Rows Count In IE Browser    ELSE    Get Table Rows Count By Scrolling    ${table.alerts.searchResults.knob}
+    ...    ${table.alerts.searchResults.barContainer}
+    ${actualRecords}=    Run Keyword If    '${tableRowsCount}'!='0'    Get Records of All Columns from Table    ${tableRowsCount}    ${table.alerts.matchingRows}
+    Append To List    ${expectedRecordsList}    ${actualRecords}
+    Should Be Equal    ${expectedRecordsList}    ${actualRecordsList}
+    Logout
+    [Teardown]    Stop Application
+
+RAAuto-82:Retrieve Similar Data in Fraud Match-API ID:26760
+    [Documentation]    Summary
+    ...
+    ...    Fraud Match search panel will be pre-populated with the values from the selected session on the Alerts page.
+    ...
+    ...    In depth verification can be founded in the Fraud Match page test suites.
+    Login to Application    ${SUBDOMAINURL}    ${alertsUser}    ${alertsPassword}
+    MenuSelect    Alerts
+    ${filters}=    Create Dictionary    Country    united states    City    richmond    Session Range
+    ...    -1
+    Enter And Validate Advanced Search Fields    ${filters}
+    Wait For Element Visible    ${label.alerts.searchResults.firstRecord}    ${DELAY}
+    Wait Until Keyword Succeeds    1m    3s    Click Element    ${label.alerts.searchResults.firstRecord}
+    Wait For Element Visible    ${label.alerts.searchresults.firstrecord}/div/span
+    ${selectedRecordAccount}=    CommonLibrary.Get Text    ${label.alerts.searchresults.firstrecord}/div/span
+    Wait For Element Visible    ${button.alerts.fraudMatch}
+    Wait And Click Element    ${button.alerts.fraudMatch}
+    Wait For New Window    2
+    ${windowTitles}=    Get Window Titles
+    Select the desired window    ${windowTitles}    Fraud Match - VirginiaCreditUnion-Retail
+    SetDateFilter
+    Page Should Contain Element    ${text.advanceSearch.ipAddress}
+    Sleep    1s
+    ${fraudmatchselectedrecordaccount}=    CommonLibrary.Get Text    ${label.alerts.fraudMatch.prePoulatedRecordAccountName}
+    Should Be Equal    ${selectedRecordAccount}    ${fraudmatchselectedrecordaccount}
+    Wait For Element Visible    ${label.alerts.fraudMatch.advanceSearch.countryCheckBox}    10000
+    Sleep    10s
+    Comment    Disable All Status Buttons
+    Comment    Wait And Click Element    ${button.cases.dismissed}
+    ${basic}=    Create Dictionary    Risk    Red    Status    Viewed,Not Viewed,Case Open
+    Do Basic Search    ${basic}
+    Comment    Simulate    ${link.common.riskRed}    click
+    ${filters}=    Create Dictionary    Country    united states    City    richmond    Session Range
+    ...    -1
+    Enter And Validate Advanced Search Fields    ${filters}
+    ${totalRows}=    Get Table Rows Count In IE Browser
+    Sleep    3s
+    Click Ascending Or Descending Icon    //div[@id='tAlerts']//table/tbody/tr//table[@class='ajs_tb_table']    AlertsTable_tAlerts_title    Country    ascending
+    ${countryvalue}=    Get Table Values Into List By Down Arrow    //div[@id="tAlerts"]/div/table//table    ${table.alerts.searchResults.knob}    ${table.alerts.searchResults.barContainer}    Country    False
+    ...    ${totalRows}
+    List Should Contain Value    ${countryvalue}    united states
+    Page Should Contain    active
+    Logout
+    [Teardown]    Stop Application
+
+RAAuto-78:Verify Export Displyed Sessions-API ID:26746
+    [Documentation]    Version 1
+    ...
+    ...    Export rows currently shown in table or data rows.Validate The Exported CSV File Values And Tables Values In Application.
+    ...    Then Validate CSV File \ Total Recors Are 500 And Headers Record
+    : FOR    ${iCount}    IN RANGE    1    3
+    \    ${bStatus}    Run Keyword And Return Status    Verify Export Displyed Sessions_al
+    \    Exit For Loop If    ${bStatus}
+    Run Keyword Unless    ${bStatus}    Fail    Testcase got failed after 2 Iterations.
+
+RAAuto-13051:Validate the Single and Mutiple Activity Search results-API ID:26829
+    [Documentation]    1. Login to RiskApp with credentials auto2vacu1/Password7
+    ...
+    ...    2. Select Alerts menu, All Time from date dropdown.
+    ...
+    ...    3. Click on Advance Search button.
+    ...
+    ...    4. Enter different values in advance search area.
+    ...
+    ...    5. Validate the results for desired activities.
+    Login to Application    ${SUBDOMAINURL}    ${alertsUser}    ${alertsPassword}
+    MenuSelect    Alerts
+    Sleep    2s
+    Simulate Or Click Element    ${button.alerts.advanceSearch}
+    Sleep    3s
+    Comment    @{searches}=    Create List    activity:Info    activity:-Logout    activity:Info , Logout    activity:Info , -Logout
+    ...    activity:Info & -Logout    activity:Info , -Logout , LoginSuccess    activity:Info & Logout
+    @{searches}=    Create List    activity:Info,-Logout
+    : FOR    ${element}    IN    @{searches}
+    \    Search Item    ${element}    country:united states
+    \    @{Search}=    Split String    ${element}    :
+    \    Sleep    1s
+    \    ${filters}=    Create Dictionary    Session Range    -1    Activity    Info,-Logout
+    \    Enter And Validate Advanced Search Fields    ${filters}
+    \    Wait Until Keyword Succeeds    1m    100ms    Any One Element Should Be Visible    //a[@title='Account Detail']    ${label.cases.noMatchingDataFound}
+    \    Rest Default Columns
+    \    Sleep    2s
+    \    Run Keyword If    '${element}'=='activity:-Logout'    Sleep    15s
+    \    Validate the Results for desired Acivities    @{Search}[1]
+    Logout
+    [Teardown]    Stop Application
+
+RAAuto-79:Verify Export All Matching Sessions (Limit:20000)-API ID:26749
+    [Documentation]    Version 1
+    ...
+    ...    Export rows currently shown in table or data rows.Validate The Exported CSV File Values And Tables Values In Application.
+    ...    Then Validate CSV File \ Total Recors Are 20000 And Headers Record
+    Login to Application    ${SUBDOMAINURL}    ${alertsUser}    ${alertsPassword}
+    MenuSelect    Alerts
+    ${filters}=    Create Dictionary    Country    brazil
+    Enter And Validate Advanced Search Fields    ${filters}
+    Wait Until Page Contains Element    ${button.alerts.export}    10000
+    ${resetStatus}    Verify Element Visible    ${button.reports.advSearchReset}
+    Run Keyword If    '${resetStatus}'=='True'    Click Element    ${button.alerts.advanceSearch}
+    Sleep    4s
+    ${exportImportFile}    Set Variable    ${FFDEFAULTDOWNLOADPATH}Export_Displayed_Session_File2.csv
+    Export Displayed Sessions    ${exportImportFile}    2    Alerts
+    Validate Table Values And CSV File Values    ${exportImportFile}    FraudMAP - Main
+    Logout
+    [Teardown]    Stop Application
+
+RAAuto-80:Export: Resorting Order of Displayed Sessions-API ID:26752
+    [Documentation]    Version 1
+    ...
+    ...    Export The Tables Records After Changing Risk Coulmns Order.Validate The Exported CSV File Values And Tables Values In Application.
+    ...    Then Validate CSV File \ Total Recors Are 500 And Headers Record
+    : FOR    ${iCount}    IN RANGE    1    3
+    \    ${bStatus}    Run Keyword And Return Status    Export: Resorting Order of Displayed Sessions_al
+    \    Exit For Loop If    ${bStatus}
+    Run Keyword Unless    ${bStatus}    Fail    Testcase got failed after 2 Iterations.
+
+RAAuto-472:Verify Export: FraudDESK report-API ID:26755
+    [Documentation]    Version 1
+    ...
+    ...    The rule is that FraudDESK reports are offered if either of the following is true:
+    ...
+    ...    The User is a Sys user.
+    ...    The tenant is a FraudDESK customer
+    Comment    Login to subdomain with Valid credentials.
+    Login to Application    ${SUBDOMAINURL}    ${alertsUser}    ${alertsPassword}
+    MenuSelect    Alerts
+    Comment    Selected Advance Search field "Session Range" as first filter item and entered a value '-1' for it.Clicked on \ "Show Results" to be displayed by the search results.
+    ${filters}=    Create Dictionary    Session Range    -1    IP Type    normal    Provider
+    ...    comcast
+    Enter And Validate Advanced Search Fields    ${filters}
+    Rest Default Columns
+    Sleep    2s
+    ${totalSessions}=    Get Table Rows Count In IE Browser
+    Wait For Element Visible    //div[@class='redAlertCounter']
+    ${redAlertsCount}=    CommonLibrary.Get Text    //div[@class='redAlertCounter']
+    Wait For Element Visible    //div[@class='yellowAlertCounter']
+    ${yellowAlertsCount}=    CommonLibrary.Get Text    //div[@class='yellowAlertCounter']
+    ${statusValues}=    Get Table Stausvalues Into List By Down Arrow    //div[@id="tAlerts"]/div/table//table    ${table.alerts.searchResults.knob}    ${table.alerts.searchResults.barContainer}    Session    False
+    log    ${statusValues}
+    ${notViewCount}=    Collections.Count Values In List    ${statusValues}    Not Viewed
+    ${openCaseOwnedbyMeCount}=    Collections.Count Values In List    ${statusValues}    Open Case Owned by Me
+    ${caseOpenCount}=    Collections.Count Values In List    ${statusValues}    Case Open
+    ${caseOpenedViewedByMeCount}=    Collections.Count Values In List    ${statusValues}    Case Opened. Viewed by me
+    ${viewedByMeCOunt}=    Collections.Count Values In List    ${statusValues}    Viewed by me
+    ${closedCaseOwnedByMeCount}=    Collections.Count Values In List    ${statusValues}    Closed Case Owned by Me
+    ${dismissedCount}=    Collections.Count Values In List    ${statusValues}    Dismissed
+    ${dismissedByMeCount}=    Collections.Count Values In List    ${statusValues}    Dismissed by me
+    ${totalCasesOpenedCount}=    Evaluate    ${openCaseOwnedbyMeCount}+${caseOpenCount}+${caseOpenedViewedByMeCount}
+    ${totalAlertsDismissedCount}=    Evaluate    ${dismissedByMeCount}+${dismissedCount}
+    ${totalAlertsViewedCount}=    Evaluate    ${totalSessions}-${notViewCount}
+    ${redAlertsCount}    Convert To Integer    ${redAlertsCount}
+    ${yellowAlertsCount}    Convert To Integer    ${yellowAlertsCount}
+    ${dctvaluesfromtable}    Create Dictionary    Red Alerts    ${redAlertsCount}    Yellow Alerts    ${yellowAlertsCount}    Alerts Viewed
+    ...    ${totalAlertsViewedCount}    Alerts Not Viewed    ${notViewCount}    Alerts Dismissed    ${totalAlertsDismissedCount}    Cases Opened
+    ...    ${totalCasesOpenedCount}
+    Comment    ${filePath}    Set Variable    C:\\Users\\MahendraP\\Downloads\\exportfgdd.csv
+    Comment    Export the csv file
+    ${exportImportFile}    Set Variable    ${FFDEFAULTDOWNLOADPATH}Export_Displayed_Session_File3.csv
+    Export Displayed Sessions    ${exportImportFile}    3    Alerts
+    ${csvCol1Values}    Get Csv File Column Values Into List    ${exportImportFile}    Alert Date/Time
+    ${csvCol2Values}    Get Csv File Column Values Into List    ${exportImportFile}    Risk Score
+    Log    ${csvCol1Values}
+    Log    ${csvCol2Values}
+    ${rowNo}    Get Index From List    ${csvCol1Values}    TOTALS:
+    Log    ${rowNo}
+    ${totalRows}    Get Length Of List    ${csvCol1Values}
+    ${dctvalues}    Create Dictionary
+    : FOR    ${iVal}    IN RANGE    ${rowNo}+2    ${totalRows}
+    \    ${val01}    Set Variable    @{csvCol1Values}[${iVal}]
+    \    ${val02}    Set Variable    @{csvCol2Values}[${iVal}]
+    \    ${val02}    Convert To Integer    ${val02}
+    \    Log Many    ${val01}    ${val02}
+    \    Set To Dictionary    ${dctvalues}    ${val01}    ${val02}
+    Log    ${dctvalues}
+    Dictionaries Should Be Equal    ${dctvaluesfromtable}    ${dctvalues}
+    Logout
+    [Teardown]    Stop Application
+
+RAAuto-55:FilterByDate: Custom Date range-API ID:26680
+    [Documentation]    Version 1
+    ...
+    ...    Verify The Results Table Total Records Count With DataBase Filter By Custom Date range
+    Login to Application    ${SUBDOMAINURL}    ${alertsUser}    ${alertsPassword}
+    MenuSelect    Alerts
+    ${basicValues}    Create Dictionary    Date    Custom    From    03/21/2013    To
+    ...    03/22/2013    Risk    All
+    Do Basic Search    ${basicValues}
+    ${color}    Set Variable    All
+    Select Risk In Basic Search    ${color}
+    ${filters}=    Create Dictionary    City    norfolk    Session Range    -1    Provider
+    ...    verizon
+    Enter And Validate Advanced Search Fields    ${filters}
+    Rest Default Columns
+    Wait For Element Visible    ${label.alerts.searchResults.firstRecord}    2m
+    ${tableRowsCount}=    Run Keyword If    '${BROWSER}'=='ie'    Get Table Rows Count In IE Browser    ELSE    Get Table Rows Count By Scrolling    ${table.alerts.searchResults.knob}
+    ...    ${table.alerts.searchResults.barContainer}
+    Log    ${tableRowsCount}
+    ${actaulRecords}=    Run Keyword If    '${tableRowsCount}'!='0'    Get Records of All Columns from Table    ${tableRowsCount}    ${table.alerts.matchingRows}
+    Logout
+    Stop Application
+    Login to Application    ${LOGIN URL}    ${VALID USER}    ${VALID PASSWD}
+    Select From List By Label    ${list.hostname}    (FD) VirginiaCreditUnion
+    Wait For Dropdown Selection    ${list.hostname}    (FD) VirginiaCreditUnion
+    Wait For Please Wait Option
+    Sleep    2s
+    MenuSelect    Alerts
+    Sleep    2s
+    ${basicValues}    Create Dictionary    Date    Custom    From    03/21/2013    To
+    ...    03/22/2013    Risk    All
+    Do Basic Search    ${basicValues}
+    ${color}    Set Variable    All
+    Select Risk In Basic Search    ${color}
+    Enter And Validate Advanced Search Fields    ${filters}
+    Rest Default Columns
+    Wait Until Element Is Visible    ${button.alerts.export}    ${DELAY}
+    Wait Until Page Contains Element    ${table.alerts.matchingRows}    10000
+    ${tableRowsCount}=    Run Keyword If    '${BROWSER}'=='ie'    Get Table Rows Count In IE Browser    ELSE    Get Table Rows Count By Scrolling    ${table.alerts.searchResults.knob}
+    ...    ${table.alerts.searchResults.barContainer}
+    Log    ${tableRowsCount}
+    ${expectedRecords}=    Run Keyword If    '${tableRowsCount}'!='0'    Get Records of All Columns from Table    ${tableRowsCount}    ${table.alerts.matchingRows}
+    Should Be Equal    ${actaulRecords}    ${expectedRecords}
+    Logout
+    [Teardown]    Stop Application
+
+RAAuto-86: Validate Keyboard Controls on Alerts Page-API ID:26772
+    [Documentation]    1. Validates the Keyboard controls(i.e. Pressing Down Arrow Key , UP Arrow Key, Page Down Key, Page Up Key)on the search results table of Alerts page.
+    ...
+    ...    2. Validates the Home key and End Key are working on the Account field
+    : FOR    ${iCount}    IN RANGE    1    3
+    \    ${bStatus}    Run Keyword And Return Status    Validate Keyboard Controls on Alerts Page
+    \    Exit For Loop If    ${bStatus}
+    Run Keyword Unless    ${bStatus}    Fail    Testcase got failed after 2 Iterations.
+
+RAAuto-86: Validate Keyboard Controls on Reports Page-API ID:26838
+    [Documentation]    1. Validates the Keyboard controls(i.e. Pressing Down Arrow Key , UP Arrow Key, Page Down Key, Page Up Key)on the search results table of Reports page.
+    ...
+    ...    2. Validates the Home key and End Key are working on the Account field
+    : FOR    ${iCount}    IN RANGE    1    3
+    \    ${bStatus}    Run Keyword And Return Status    Validate Keyboard Controls on Reports Page
+    \    Exit For Loop If    ${bStatus}
+    Run Keyword Unless    ${bStatus}    Fail    Testcase got failed after 2 Iterations.
+
+RAAuto-86: Validate Keyboard Controls on Cases Page-API ID:26841
+    [Documentation]    1. Validates the Keyboard controls(i.e. Pressing Down Arrow Key , UP Arrow Key, Page Down Key, Page Up Key)on the search results table of Cases page.
+    ...
+    ...    2. Validates the Home key and End Key are working on the Account field
+    : FOR    ${iCount}    IN RANGE    1    3
+    \    ${bStatus}    Run Keyword And Return Status    Validate Keyboard Controls on Cases Page
+    \    Exit For Loop If    ${bStatus}
+    Run Keyword Unless    ${bStatus}    Fail    Testcase got failed after 2 Iterations.
+
+RAAuto-64:Activities displayed in the Activity column-API ID:26693
+    [Documentation]    Verifies \ the activities listed under the Activity header column.
+    ...
+    ...    Verifies the \ activity column is displayed with the activity data for the sessions that have activities.
+    ...
+    ...    Verifies the activities \ are displayed in Risk order.
+    ...
+    ...    Validate the activitie values in RiskApplication and Database
+    Login to Application    ${SUBDOMAINURL}    ${alertsUser}    ${alertsPassword}
+    MenuSelect    Alerts
+    Sleep    2s
+    Select Risk In Basic Search    RedAndYellow
+    ${filters}=    Create Dictionary    Activity    TrsfrSubMbr    Session Range    35
+    Enter And Validate Advanced Search Fields    ${filters}
+    Sleep    2s
+    ${totalRows}=    Get Table Rows Count In IE Browser
+    Sleep    4s
+    Comment    Verifies the activity column is displayed with the activity data for the sessions that have activities and also Verifies the activities \ are displayed in Risk order \ in RiskApp.
+    ${activitiesinRiskApp}=    Validate the Activities and risk orders    TrsfrSubMbr    ${totalRows}
+    Logout
+    Stop Application
+    Login to Application    ${LOGIN URL}    ${VALID USER}    ${VALID PASSWD}
+    Select From List By Label    //div[@class="selectWrapper"]/select    (FD) VirginiaCreditUnion
+    Wait For Dropdown Selection    //div[@class="selectWrapper"]/select    (FD) VirginiaCreditUnion
+    Wait For Please Wait Option
+    MenuSelect    Alerts
+    Select Risk In Basic Search    RedAndYellow
+    ${filters}=    Create Dictionary    Activity    TrsfrSubMbr    Session Range    35
+    Enter And Validate Advanced Search Fields    ${filters}
+    Rest Default Columns
+    Sleep    2s
+    ${totalRows}=    Get Table Rows Count In IE Browser
+    Comment    Verifies the \ activity column is displayed with the activity data for the sessions that have activities and also Verifies the activities \ are displayed in Risk order \ in Database.
+    ${activitiesinDB}=    Validate the Activities and risk orders    TrsfrSubMbr    ${totalRows}
+    Comment    Compare the activities \ in RiskApp with Database activity values displayed in searchresults table.
+    Lists Should Be Equal    ${activitiesinDB}    ${activitiesinRiskApp}
+    Logout
+    [Teardown]    Stop Application
+
+RAAuto-71: ActivityFilter: Using wildcard '*'-API ID:26714
+    [Documentation]    1-71:ActivityFilter: Using wildcard '*'
+    ...
+    ...    1) Open Alerts page in RiskApp and \ enter a value with a wildcard character \ in the activity filter and click on SHOW RESULTS button. \ 2) Login to the database and query the tables for the given filter value with
+    ...
+    ...    wildcard.
+    ...
+    ...    3) Compare the results with the ones in RiskApp.
+    ...
+    ...    4) Repeat this with Fraud Match, Accounts, Reports and Cases page.
+    : FOR    ${iCount}    IN RANGE    1    3
+    \    ${bStatus}    Run Keyword And Return Status    Alerts.Activity Filter: Using wildcard
+    \    Exit For Loop If    ${bStatus}
+    Run Keyword Unless    ${bStatus}    Fail    Testcase got failed after 2 Iterations.
+
+RAAuto-83:Assigned color to risk score-API ID:26763
+    [Documentation]    1.Changed the \ Risk Filter to Red,red+yellow, +light green, +dark green and
+    ...
+    ...    2.Using these risk values, check the session record against the thresholds to see if the record has the correct color associated to the risk score.
+    Login to Application    ${LOGIN URL}    ${VALID USER}    ${VALID PASSWD}
+    Select From List By Label    ${list.hostname}    (FD) VirginiaCreditUnion
+    Wait For Dropdown Selection    ${list.hostname}    (FD) VirginiaCreditUnion
+    MenuSelect    Alerts
+    Select Status In Basic Search    Viewed
+    ${count}=    Get Matching Xpath Count    //div[@id='risk']/div/div
+    ${defaultRiskVal}=    Get Element Attribute Value    //div[@id='riskFilterDoral']/div@class
+    comment    Verifying the Risk filter defaults to 'Red' or Not.
+    Run Keyword If    '${defaultRiskVal}'!='inlineBlock Red'    Set Test Message    Red is Not Default Risk Value
+    Run Keyword If    '${defaultRiskVal}'!='inlineBlock Red'    Select Risk In Basic Search    Red
+    Sleep    2s
+    comment    Checking \ the session record against the thresholds to see if the record has the correct color associated to the risk score.
+    : FOR    ${idx}    IN RANGE    1    ${count}+1
+    \    ${value}    Get Element Attribute Value    //div[@id='risk']/div//div[${idx}]@class
+    \    Select Risk In Basic Search    ${value}
+    \    Comment    Simulate    ${image.basicsearch.riskdownarrow}    click
+    \    Comment    Simulate    //div[@id='risk']/div//div[@class='${value}']    click
+    \    Comment    Sleep    2s
+    \    Wait And Click Element    ${button.alerts.showResults}
+    \    Sleep    5s
+    \    Wait For Element Visible    ${label.fraudMatch.riskRedCount}
+    \    ${redSessionsCount}=    CommonLibrary.Get Text    ${label.fraudMatch.riskRedCount}
+    \    ${yellowSessionsCount}=    CommonLibrary.Get Text    ${label.fraudMatch.riskYellowCount}
+    \    ${ltGreenSessionsCount}=    CommonLibrary.Get Text    ${label.fraudMatch.riskLightGreenCount}
+    \    ${greenSessionsCount}=    CommonLibrary.Get Text    ${label.fraudMatch.riskGreenCount}
+    \    Run Keyword If    '${value}'=='Red' and ${yellowSessionsCount}!=0 and ${ltGreenSessionsCount}!=0 and ${greenSessionsCount}!=0    Fail    Filtered Risk Level ${value} mismatches with the risk score
+    \    Run Keyword If    '${value}'=='RedAndYellow' and ${ltGreenSessionsCount}!=0 and ${greenSessionsCount}!=0    Fail    Filtered Risk Level ${value} mismatches with the risk score
+    \    Run Keyword If    '${value}'=='RedAndLight' and ${greenSessionsCount}!=0    Fail    Filtered Risk Level ${value} mismatches with the risk score
+    Logout
+    [Teardown]    Stop Application
+
+RAAuto-76: Dismiss button-API ID:26731
+    [Documentation]    1.Validate the retrieved records in the Alerts page and select a record of an orange downward arrow is displayed on the far left column (status column) of the result set then check the status of Active buttons for selected record.
+    ...
+    ...    2.Validate a record with no status (a record with no indicator to the left of the Risk score),then click the Dismiss button and Validate the Create Case button should be disabled after the session is dismissed.
+    ...
+    ...    3.Validate a record with the status of "Viewed by me"(a record with an orange check mark to the left of the Risk score),then click the Dismiss button and Validate the Create Case button should be disabled after the session is dismissed.
+    ...
+    ...    4.Validate a record with status of "Open Case Owned by Me"( a record with an orange star to the left of the Risk score),then click the Dismiss button and the Create Case button should be disabled after the session is dismissed and Check Create Case button should toggle to show View Case or not.
+    ...
+    ...    5.Validate a record with status of "Closed Case Owned by Me"( a record with an orange star to the left of the Risk score),then click the Dismiss button and the Create Case button should be disabled after the session is dismissed and Check Create Case button should toggle to show View Case or not.
+    : FOR    ${iCount}    IN RANGE    1    3
+    \    ${bStatus}    Run Keyword And Return Status    Dismiss button
+    \    Exit For Loop If    ${bStatus}
+    Run Keyword Unless    ${bStatus}    Fail    Testcase got failed after 2 Iterations.
+
+RAAuto-51:Retrieve data using filters-API ID:26645
+    [Documentation]    1. Login to 'vac-99' domain & retreive some records by using advanced filter values.
+    ...
+    ...    2. Verify whether the 'totalSessionCount' of the retrieved data is equal to the sum of the red,yellow,lightGreen,green 'SessionCount' or not.
+    ...
+    ...    3. Login to 'sys' domain & retrieve some records by using same advance search filtervalues
+    ...
+    ...    4. Verifies whether it retrieves the same records or not - by verifying the total SessionCount value.
+    Comment    Login to 'vac-99' domain by using advanced search retreive some records
+    Login to Application    ${SUBDOMAINURL}    ${alertsUser}    ${alertsPassword}
+    MenuSelect    Alerts
+    ${filters}=    Create Dictionary    Country    italy    Session Range    3
+    Enter And Validate Advanced Search Fields    ${filters}
+    Comment    Verify the record counts for Total Sessions, red, yellow, light green and green.
+    Rest Default Columns
+    Wait For Element Visible    //div[@class='sessionCounter']    ${DELAY}
+    Validate TotalSessionCounter With Individual AlertCounters
+    Set Test Variable    ${actualSessionsCount}    ${sessionCounter}
+    Set Test Variable    ${actualRecords}    ${recordsList}
+    Logout
+    Stop Application
+    Comment    Login to 'sys' domain with the credentials & verifies whether it retreives the same session records or not.
+    Login to Application    ${LOGIN URL}    ${VALID USER}    ${VALID PASSWD}
+    Select From List By Label    ${list.hostname}    (FD) VirginiaCreditUnion
+    Wait For Dropdown Selection    ${list.hostname}    (FD) VirginiaCreditUnion
+    Wait For Please Wait Option
+    Sleep    2s
+    MenuSelect    Alerts
+    Sleep    5s
+    Wait For Element Visible    ${image.basicsearch.riskdownarrow}    ${DELAY}
+    Simulate    ${image.basicsearch.riskdownarrow}    click
+    Sleep    1s
+    Simulate    ${link.common.riskRed}    click
+    Enter And Validate Advanced Search Fields    ${filters}
+    Rest Default Columns
+    Wait For Element Visible    //div[@class='sessionCounter']    ${DELAY}
+    Validate TotalSessionCounter With Individual AlertCounters
+    Set Test Variable    ${expectedSessionsCount}    ${sessionCounter}
+    Set Test Variable    ${ExpectedRecords}    ${recordsList}
+    Comment    Verifies whether both the 'sys','vac-99' domain retreives the same number of records or not for the same criteria in both the domains.
+    Run Keyword If    ${actualSessionsCount}!=${expectedSessionsCount}    Fail    The number of records retreived from "Vac" domain mismatches with the number of records retreived from "Sys" domain for the same search results.
+    Should Be Equal    ${actualRecords}    ${ExpectedRecords}
+    Logout
+    [Teardown]    Stop Application
+
+RAAuto-13055:previous searches cancel-API ID:26832
+    [Documentation]    1. Verifies performing the action clicking on 'Cancel' button is able to create a 'Cancelled' labelled previous search after clicking show results button on Alerts page.
+    ...
+    ...    2. Validates the 'Cancelled' label previous search is able to restart and can move into the state 'Completed'
+    [Tags]    NC_inconsistent
+    Login to Application    ${SUBDOMAINURL}    ${subdomainuser}    ${subdomainuserpassword}
+    MenuSelect    Alerts
+    Simulate    ${link.common.riskAll}    click
+    Input Text    ${text.alerts.fromDate}    09/19/2010
+    Input Text    ${text.alerts.toDate}    11/19/2013
+    ${filters}=    Create Dictionary    Session Range    9
+    Enter And Validate Advanced Search Fields    ${filters}    False    ${button.fraudMatch.showResults.cancel}
+    Wait Until Page Contains Element    ${button.fraudMatch.showResults.cancel}    ${DELAY}    Fraud Match page does not contain cancel button
+    ${bstatus}=    Get Previous Search Text Status    Cancel    Cancelled
+    Run Keyword And Continue On Failure    Run Keyword If    ${bstatus}!=True    Fail    'Cancelled' labelled previous searches are not displayed.
+    Logout
+    [Teardown]    Stop Application
+
+RAAuto-12502:Activity search using wildcard to find open sessions-API ID:26648
+    [Documentation]    1.select tenant EntFCUCO-Retail, in ALERTS page
+    ...
+    ...    2.Enter date from 02/03/2013 to 02/03/2013
+    ...
+    ...    3.In Advanced Search Activity field, enter Tr* & -TrsfrSubInt
+    ...
+    ...    4.Click Show Results.
+    ...
+    ...    5.Then click the header of the column between Account and Session (This column does not have label).
+    ...
+    ...    6. Move the cursor over the two green arrows, a text box appears showing “session still open”.
+    ...
+    ...    7.Move the cursor over the Activity column for all the open sessions one by one.
+    [Template]
+    Login to Application    ${LOGIN URL}    ${VALID USER}    ${VALID PASSWD}
+    Comment    ${selectedHostName}=    CommonLibrary.Get Text    ${text.sysDomain.selectedHostName}
+    Comment    Run Keyword If    '${selectedHostName}'!='EntFCUCO'    Select From List By Label    ${list.hostname}    EntFCUCO
+    Select From List By Label    ${list.hostname}    (FD) VirginiaCreditUnion
+    Sleep    2s
+    MenuSelect    Alerts
+    Simulate    ${image.basicsearch.riskdownarrow}    click
+    Simulate    ${link.common.riskAll}    click
+    Click Element    ${text.alerts.fromDate}
+    Input Text    ${text.alerts.fromDate}    02/03/2013
+    Input Text    ${text.alerts.toDate}    02/03/2013
+    Sleep    3s
+    ${filters}=    Create Dictionary    Session Range    50-100    Activity    Tr* & -TrsfrSubInt
+    Enter And Validate Advanced Search Fields    ${filters}
+    ${tableRowsCount}=    Get Table Rows Count In IE Browser
+    Comment    Open Context Menu    ${table.alert.searchResults.columnHeaderEighthColumn}
+    Comment    Sleep    1s
+    Comment    Click Element    ${link.dashboard.contextMenu.restoreDefaultColumns}
+    Comment    Sleep    1s
+    Rest Default Columns
+    Sleep    2s
+    Wait For Element Visible    //div[contains(@id,'col_R0C4')]/div    ${DELAY}
+    Click Element    //div[contains(@id,'col_R0C4')]/div
+    comment    verify two green arrows are present and get the tool tip text 'Session still open' for the top results
+    : FOR    ${iCount}    IN RANGE    1    ${tableRowsCount}+1
+    \    CommonLibrary.Mouse Move    //div[contains(@id,'C4') and contains(@class,'Selected')]
+    \    ${textvalue}=    Get Tooltip Value    //div[contains(@id,'C4') and contains(@class,'Selected')]
+    \    Comment    Mouse Over Until Get Text    //div[contains(@id,'C4') and contains(@class,'Selected')]
+    \    Run Keyword If    '${textvalue}'!='Session still open'    Exit For Loop
+    \    Click Element    ${table.alerts.searchResults.selectedRecord}
+    \    Press Down Key    ${table.alerts.searchResults.selectedRecord}
+    \    Sleep    1s
+    Run Keyword If    '${textvalue}'!='Session still open'    Set Test Message    "Session still open" image presents from first row to "${iCount-1}".
+    Click Element    ${link.adminUsers.showResults}
+    Wait For Element Visible    //a[@title='Account Detail']    ${DELAY}
+    Comment    verify activities displayed in the search criteria matches with the search results
+    Get Activity Values and Verify with Activity Filters    ${tableRowsCount}
+    Logout
+    [Teardown]    Stop Application
+
+RAAuto-13059:Verify and Validate Multiple Filters In Advance Search Fields At a Time-API ID:26835
+    Comment    Login to subdomain with Valid credentials.
+    Login to Application    ${SUBDOMAINURL}    ${alertsUser}    ${alertsPassword}
+    MenuSelect    Alerts
+    ${resetStatus}    Verify Element Visible    ${button.reports.advSearchReset}
+    Run Keyword If    '${resetStatus}'!='True'    Click Element    ${button.alerts.advanceSearch}
+    Sleep    5s
+    Comment    Enter Multiple advance search val
+    ${actualDictionary}    Create Dictionary    Country    United Kingdom    IPType    normal    Access Mode
+    ...    mobile
+    Enter And Validate Advanced Search Fields    ${actualDictionary}
+    Rest Default Columns
+    Sleep    2s
+    ${totalRows}    Get Table Rows Count in Alerts
+    Comment    Validate the Multiple Advance Search Fields With Resultant Table    ${actualDictionary}    ${totalRows}
+    Comment    Logout
+    ${bStatus}=    Check the status of all row values    ${totalRows}    ${actualDictionary}
+    Comment    ${tableValues}    Get Table Each Rows Values Into List By Down Arrow    ${table.alerts.matchingRows}    ${table.alerts.searchResults.knob}    ${table.alerts.searchResults.barContainer}    Session
+    ...    False    ${totalRows}
+    Comment    Log    ${tableValues}
+    Comment    ${bStatus}    Validate Results Table Details With Search Field Values    ${tableValues}    ${actualDictionary}
+    Run Keyword If    ${bStatus}    Set Test Message    The resultant values under each column not having empty values as expected.    ELSE    Fail    The resultant values under each column having empty values, but not expected behaviour.
+    Logout
+    [Teardown]    Stop Application
+
+RAAuto-53:Verify the resize move remove and change back to default settings for column headers on the Alert Records table-API ID:26669
+    [Documentation]    Version 1
+    ...
+    ...    Summary: Verify you can resize, move, remove, and change back to default settings for column header.
+    ...
+    ...    FB-2185, 1965 and 2828: Save column attributes (width, order, visibility) across sessions
+    : FOR    ${iCount}    IN RANGE    1    3
+    \    ${bStatus}    Run Keyword And Return Status    Verify the resize move remove and change back to default settings for column headers on the Alert Records table
+    \    Exit For Loop If    ${bStatus}
+    Run Keyword Unless    ${bStatus}    Fail    Testcase got failed after 2 Iterations.
+
+RAAuto-65:ActivityFilter: Single Activity 01-API ID:26696
+    [Documentation]    1)Login to VAC domain with credentials auto2vacu1/Password10
+    ...
+    ...    2)Select Alerts menu, All Time from date dropdown
+    ...
+    ...    3)Expand the advance search area.
+    ...
+    ...    4)Enter the value into activity.
+    ...
+    ...    5)Click on Show Results
+    ...
+    ...    6)Verify the results displayed are from sessions that only has the same activity value in the filter field.
+    Login to Application    ${SUBDOMAINURL}    ${alertsUser}    ${alertsPassword}
+    MenuSelect    Alerts
+    ${element}    Set Variable    activity:Info
+    @{Search}=    Split String    ${element}    :
+    ${filters}=    Create Dictionary    Session Range    36    Activity    Info
+    Enter And Validate Advanced Search Fields    ${filters}
+    Wait Until Keyword Succeeds    1m    100ms    Any One Element Should Be Visible    //a[@title='Account Detail']    ${label.cases.noMatchingDataFound}
+    Rest Default Columns
+    Sleep    2s
+    Validate the Results for desired Acivities    @{Search}[1]
+    Logout
+    [Teardown]    Stop Application
+
+RAAuto-66:ActivityFilter: Single Activity 02-API ID:26699
+    [Documentation]    1)Login to VAC domain with credentials auto2vacu1/Password10
+    ...
+    ...    2)Select Alerts menu, All Time from date dropdown
+    ...
+    ...    3)Expand the advance search area.
+    ...
+    ...    4)Enter the value into activity
+    ...
+    ...    5)Click on Show Results
+    ...
+    ...    6)Verify the results displayed are from sessions that only has the same activity value in the filter field.
+    Login to Application    ${SUBDOMAINURL}    ${alertsUser}    ${alertsPassword}
+    MenuSelect    Alerts
+    ${element}    Set Variable    activity:-Logout
+    @{Search}=    Split String    ${element}    :
+    ${filters}=    Create Dictionary    Session Range    33    Activity    -Logout
+    Enter And Validate Advanced Search Fields    ${filters}
+    Wait Until Keyword Succeeds    1m    100ms    Any One Element Should Be Visible    //a[@title='Account Detail']    ${label.cases.noMatchingDataFound}
+    Rest Default Columns
+    Sleep    2s
+    Validate the Results for desired Acivities    @{Search}[1]
+    Logout
+    [Teardown]    Stop Application
+
+RAAuto-68:ActivityFilter: Multiple Activities 02-API ID:26705
+    [Documentation]    1)Login to VAC domain with credentials auto2vacu1/Password10
+    ...
+    ...    2)Select Alerts menu, All Time from date dropdown
+    ...
+    ...    3)Expand the advance search area.
+    ...
+    ...    4)Enter more than one activity values seperating with "&".
+    ...
+    ...    5)Click on Show Results
+    ...
+    ...    6)Verify the results displayed are from sessions that have both values entered in the activity filter field.
+    Login to Application    ${SUBDOMAINURL}    ${alertsUser}    ${alertsPassword}
+    MenuSelect    Alerts
+    Comment    @{searches}=    Create List    activity:Info    activity:-Logout    activity:Info , Logout    activity:Info , -Logout
+    ...    activity:Info & -Logout    activity:Info , -Logout , LoginSuccess    activity:Info & Logout
+    @{searches}=    Create List    activity:Info & Logout
+    : FOR    ${element}    IN    @{searches}
+    \    Comment    Search Item    ${element}    country:united states
+    \    @{Search}=    Split String    ${element}    :
+    \    Sleep    1s
+    \    ${filters}=    Create Dictionary    Session Range    24    Activity    Info & Logout
+    \    Enter And Validate Advanced Search Fields    ${filters}
+    \    Wait Until Keyword Succeeds    1m    100ms    Any One Element Should Be Visible    //a[@title='Account Detail']    ${label.cases.noMatchingDataFound}
+    \    Rest Default Columns
+    \    Sleep    2s
+    \    Run Keyword If    '${element}'=='activity:-Logout'    Sleep    15s
+    \    Validate the Results for desired Acivities    @{Search}[1]
+    Logout
+    [Teardown]    Stop Application
+
+RAAuto-69:ActivityFilter: Multiple Activities 03-API ID:26708
+    [Documentation]    1)Login to VAC domain with credentials auto2vacu1/Password10
+    ...
+    ...    2)Select Alerts menu, All Time from date dropdown
+    ...
+    ...    3)Expand the advance search area.
+    ...
+    ...    4)Enter more than one activity values with "&".One of the value starts with "-" sign
+    ...
+    ...    5)Click on Show Results
+    ...
+    ...    6)Verify the results displayed are from sessions that have activities without the "-" signed value,but have the no signed values.
+    Login to Application    ${SUBDOMAINURL}    ${alertsUser}    ${alertsPassword}
+    MenuSelect    Alerts
+    Comment    @{searches}=    Create List    activity:Info    activity:-Logout    activity:Info , Logout    activity:Info , -Logout
+    ...    activity:Info & -Logout    activity:Info , -Logout , LoginSuccess    activity:Info & Logout
+    @{searches}=    Create List    activity:Info & -Logout
+    : FOR    ${element}    IN    @{searches}
+    \    @{Search}=    Split String    ${element}    :
+    \    Sleep    1s
+    \    ${filters}=    Create Dictionary    Session Range    10    Activity    Info & -Logout
+    \    Enter And Validate Advanced Search Fields    ${filters}
+    \    Wait Until Keyword Succeeds    1m    100ms    Any One Element Should Be Visible    //a[@title='Account Detail']    ${label.cases.noMatchingDataFound}
+    \    Rest Default Columns
+    \    Sleep    2s
+    \    Run Keyword If    '${element}'=='activity:-Logout'    Sleep    15s
+    \    Validate the Results for desired Acivities    @{Search}[1]
+    Logout
+    [Teardown]    Stop Application
+
+RAAuto-77:Clear Status button-API ID:26741
+    Login to Application    ${SUBDOMAINURL}    ${subdomainuser}    ${subdomainuserpassword}
+    MenuSelect    Alerts
+    ${basicValues}    Create Dictionary    Date    All Time    Risk    All    Status
+    ...    Viewed
+    Do Basic Search    ${basicValues}
+    ${filters}=    Create Dictionary    Session Range    1-100
+    Enter And Validate Advanced Search Fields    ${filters}
+    ${buttonStatus}    Get Element Attribute Value    //div[@id='ajs_T_AlertsTable_tAlerts_F_AlertsTable_tAlerts_cell_R0C1']//img@src
+    ${bStatus}    String Should Contain    ${buttonStatus}    ga_status_V.png
+    Sleep    ${DELAY5}
+    Double Click Element    //a[@title='Clear Status']/img
+    Wait For Element Visible    //a[@title='Clear Status - not permitted']/img
+    Wait For Element Visible    //img[@src='/images/doral/ga_status_NV.png']    ${DELAY}
+    ${status}    Get Element Attribute Value    //div[@id='ajs_T_AlertsTable_tAlerts_F_AlertsTable_tAlerts_cell_R0C1']//img@src
+    ${notViewed}    String Should Contain    ${status}    ga_status_NV.png
+    ${bullet}    String Should Contain    ${status}    ga_status_bullet.png
+    Run Keyword If    ${notViewed}==False and ${bullet}==False    Fail    Status is not cleared.
+    Run Keyword If    ${bStatus} == True    Wait And Click Element    //div[@id='detailButton']//img
+    Run Keyword If    ${bStatus} == True    Wait For New Window    1
+    ${windowNames}    Run Keyword If    ${bStatus} == True    Get Window Names
+    Run Keyword If    ${bStatus} == True    Select the desired window    ${windowNames}    acc
+    Run Keyword If    ${bStatus} == True    Wait For Element Visible    //a[@title='Export']
+    Run Keyword If    ${bStatus} == True    Select the desired window    ${windowNames}    close
+    ${buttonStatus}    Run Keyword If    ${bStatus} == True    Get Element Attribute Value    //div[@id='ajs_T_AlertsTable_tAlerts_F_AlertsTable_tAlerts_cell_R0C1']//img@src
+    Run Keyword If    ${bStatus} == True    String Should Contain    ${buttonStatus}    ga_status_V_by_me.png
+    Logout
+    [Teardown]    Stop Application
+
+RAAuto-1790:ALERTS: IP Address search by Network block
+    [Documentation]    1. Login to RiskApp as Subdomain user.
+    ...
+    ...    2. Verify the tenent is selected as VirgeniaCreditUnion and retail.
+    ...
+    ...    3. Navigate to Alerts page.
+    ...
+    ...    4. Give From(ET) as 09/07/2015 and To(ET) as 09/07/2015.
+    ...
+    ...    5. Select status as Viewed and Not viewed.
+    ...
+    ...    6. Give the IP Network as "75.139.104" in IP Address field and search for results.
+    ...
+    ...    7. Click on Show Results.
+    ...
+    ...    8. Some results must be displayed and verify the given IP network is displayed in the Network column in the Alerts table.
+    ...
+    ...    9. Give date field as AllTime and click on Show Results.
+    ...
+    ...    10. Some results must be displayed and verify the given IP network is displayed in the Network column in the Alerts table.
+    ...
+    ...    11. Logout from the application.
+    ...
+    ...    =====================
+    ...
+    ...    From step 8, user should be able to see sessions which are in between given custom dates and the given IP network in the Network column.
+    ...
+    ...
+    ...    From step 10, user should be able to see sessions which are of AllTime and the given IP network in the Network column.
+    ${ipAddressValues}    Set Variable    75.139.104
+    ${basicValues0}    Create Dictionary    From=09/06/2015    To=09/07/2015    Risk=All    Status=Not Viewed,Viewed,Case Open,Case Closed,Dismissed
+    ${filters0}    Create Dictionary    IP Address=${ipAddressValues}
+    ${basicValues1}    Create Dictionary    Date=All Time    Risk=All    Status=Not Viewed,Viewed,Case Open,Case Closed,Dismissed
+    ${filters1}    Create Dictionary    IP Address=${ipAddressValues}    Session Range=10-100
+    Login to Application    ${SUBDOMAINURL}    ${subdomainuser}    ${subdomainuserpassword}
+    MenuSelect    Alerts
+    : FOR    ${index}    IN RANGE    0    2
+    \    Do Basic Search    ${basicValues${index}}
+    \    Enter And Validate Advanced Search Fields    ${filters${index}}
+    \    Wait For Element Invisible    ${headers.alerts.showresults.searchingdialog}    ${DELAY5}
+    \    ${resultsStatus}    Verify Element Visible    ${label.common.No matching data found}
+    \    Run Keyword If    ${resultsStatus}    Fail    'No matching data found' is displayed.
+    \    Comment    verify the given IP network is displayed in the Network column in the Alerts table.
+    \    ${totalRows}    Get Table Rows Count in Alerts
+    \    ${networkValues}    Get Table Values Into List By Down Arrow    ${table.alerts.matchingRows}    ${table.alerts.searchResults.knob}    ${table.alerts.searchResults.barContainer}    Network
+    \    ...    False    ${totalRows}
+    \    ${networkValueStatus}    Match Result Values To Pattern    ${networkValues}    75.139.104.0
+    \    Run Keyword Unless    ${networkValueStatus}    Fail    Expected network value is not displayed.
+    Click On Show Results
+    Wait For Element Invisible    ${headers.alerts.showresults.searchingdialog}    ${DELAY5}
+    Click or Simulate    ${button.alerts.fraudMatch}
+    Wait For New Window    2
+    ${windowTitles}    Get Window Titles
+    Select the desired window    ${windowTitles}    Fraud Match
+    : FOR    ${index}    IN RANGE    0    2
+    \    Do Basic Search    ${basicValues${index}}
+    \    Enter And Validate Advanced Search Fields    ${filters${index}}
+    \    Wait For Element Invisible    ${headers.alerts.showresults.searchingdialog}    ${DELAY5}
+    \    ${resultsStatus}    Verify Element Visible    ${label.common.No matching data found}
+    \    Run Keyword If    ${resultsStatus}    Fail    'No matching data found' is displayed.
+    \    Comment    verify the given IP network is displayed in the Network column in the Alerts table.
+    \    ${totalRows}    Get Table Rows Count in Alerts
+    \    ${networkValues}    Get Table Values Into List By Down Arrow    ${table.fraudMatch.matchingRows}    ${table.alerts.searchResults.knob}    ${table.alerts.searchResults.barContainer}    Network
+    \    ...    False    ${totalRows}
+    \    ${networkValueStatus}    Match Result Values To Pattern    ${networkValues}    75.139.104.0
+    \    Run Keyword Unless    ${networkValueStatus}    Fail    Expected network value is not displayed.
+    Logout
+    [Teardown]    Stop Application
+
+RAAuto-1791:ALERTS: IP Address search by exact IP Address
+    [Documentation]    1. Login to RiskApp as Subdomain user.
+    ...
+    ...    2. Verify the tenent is selected as VirgeniaCreditUnion and retail.
+    ...
+    ...    3. Navigate to Alerts page.
+    ...
+    ...    4. Give From(ET) as 09/07/2015 and To(ET) as 09/07/2015.
+    ...
+    ...    5. Select status as Viewed and Not viewed.
+    ...
+    ...    6. Give the IP Network as "75.139.104.69" in IP Address field and search for results.
+    ...
+    ...    7. Click on Show Results.
+    ...
+    ...    8. Some results must be displayed and verify the given IP network is displayed in the Network column in the Alerts table.
+    ...
+    ...    9. Give date field as AllTime and click on Show Results.
+    ...
+    ...    10. Some results must be displayed and verify the given IP network is displayed in the Network column in the Alerts table.
+    ...
+    ...    11. Logout from the application.
+    ...
+    ...    ====================
+    ...
+    ...    From step 8, user should be able to see sessions which are in between given custom dates and the given IP network in the Network column.
+    ...
+    ...
+    ...    From step 10, user should be able to see sessions which are of AllTime and the given IP network in the Network column.
+    ${ipAddressValues}    Set Variable    75.139.104.69
+    ${basicValues0}    Create Dictionary    From=09/06/2015    To=09/07/2015    Risk=All    Status=Not Viewed,Viewed,Case Open,Case Closed,Dismissed
+    ${filters0}    Create Dictionary    IP Address=${ipAddressValues}
+    ${basicValues1}    Create Dictionary    Date=All Time    Risk=All    Status=Not Viewed,Viewed,Case Open,Case Closed,Dismissed
+    ${filters1}    Create Dictionary    IP Address=${ipAddressValues}    Session Range=10-100
+    Login to Application    ${SUBDOMAINURL}    ${subdomainuser}    ${subdomainuserpassword}
+    MenuSelect    Alerts
+    : FOR    ${index}    IN RANGE    0    2
+    \    Do Basic Search    ${basicValues${index}}
+    \    Enter And Validate Advanced Search Fields    ${filters${index}}
+    \    Wait For Element Invisible    ${headers.alerts.showresults.searchingdialog}    ${DELAY5}
+    \    ${resultsStatus}    Verify Element Visible    ${label.common.No matching data found}
+    \    Run Keyword If    ${resultsStatus}    Fail    'No matching data found' is displayed.
+    \    Comment    verify the given IP network is displayed in the Network column in the Alerts table.
+    \    ${totalRows}    Get Table Rows Count in Alerts
+    \    ${networkValues}    Get Table Values Into List By Down Arrow    ${table.alerts.matchingRows}    ${table.alerts.searchResults.knob}    ${table.alerts.searchResults.barContainer}    Network
+    \    ...    False    ${totalRows}
+    \    ${networkValueStatus}    Match Result Values To Pattern    ${networkValues}    75.139.104.0
+    \    Run Keyword Unless    ${networkValueStatus}    Fail    Expected network value is not displayed.
+    Click On Show Results
+    Wait For Element Invisible    ${headers.alerts.showresults.searchingdialog}    ${DELAY5}
+    Click or Simulate    ${button.alerts.fraudMatch}
+    Wait For New Window    2
+    ${windowTitles}    Get Window Titles
+    Select the desired window    ${windowTitles}    Fraud Match
+    : FOR    ${index}    IN RANGE    0    2
+    \    Do Basic Search    ${basicValues${index}}
+    \    Enter And Validate Advanced Search Fields    ${filters${index}}
+    \    Wait For Element Invisible    ${headers.alerts.showresults.searchingdialog}    ${DELAY5}
+    \    ${resultsStatus}    Verify Element Visible    ${label.common.No matching data found}
+    \    Run Keyword If    ${resultsStatus}    Fail    'No matching data found' is displayed.
+    \    Comment    verify the given IP network is displayed in the Network column in the Alerts table.
+    \    ${totalRows}    Get Table Rows Count in Alerts
+    \    ${networkValues}    Get Table Values Into List By Down Arrow    ${table.fraudMatch.matchingRows}    ${table.alerts.searchResults.knob}    ${table.alerts.searchResults.barContainer}    Network
+    \    ...    False    ${totalRows}
+    \    ${networkValueStatus}    Match Result Values To Pattern    ${networkValues}    75.139.104.0
+    \    Run Keyword Unless    ${networkValueStatus}    Fail    Expected network value is not displayed.
+    Logout
+    [Teardown]    Stop Application
+
+RAAuto-1792:ALERTS: IP Address search by exact IP Address and network block address.
+    [Documentation]    1. Login to RiskApp as Subdomain user.
+    ...
+    ...    2. Verify the tenent is selected as VirgeniaCreditUnion and retail.
+    ...
+    ...    3. Navigate to Alerts page.
+    ...
+    ...    4. Give From(ET) as 09/07/2015 and To(ET) as 09/07/2015.
+    ...
+    ...    5. Select status as Viewed and Not viewed.
+    ...
+    ...    6. Give the IP Network as "75.139.104.69,75.139.104.105" in IP Address field and search for results.
+    ...
+    ...    7. Click on Show Results.
+    ...
+    ...    8. Some results must be displayed and verify any one of the given IP network is displayed in the Network column in the Alerts table.
+    ...
+    ...    9. Give date field as AllTime and click on Show Results.
+    ...
+    ...    10. Some results must be displayed and verify any one of the given IP network is displayed in the Network column in the Alerts table.
+    ...
+    ...    11. Logout from the application.
+    ...
+    ...    ===========================
+    ...
+    ...    From step 8, user should be able to see sessions which are in between given custom dates and any one of the given IP network in the Network column.
+    ...
+    ...
+    ...    From step 10, user should be able to see sessions which are of AllTime and any one of the given IP network in the Network column.
+    ${ipAddressValues}    Set Variable    75.139.104.69,75.139.104.105
+    ${basicValues0}    Create Dictionary    Date=Custom    From=09/06/2015    To=09/06/2015    Risk=All    Status=Not Viewed,Viewed,Case Open,Case Closed,Dismissed
+    ${filters0}    Create Dictionary    IP Address=${ipAddressValues}
+    ${basicValues1}    Create Dictionary    Date=All Time    Risk=All    Status=Not Viewed,Viewed,Case Open,Case Closed,Dismissed
+    ${filters1}    Create Dictionary    IP Address=${ipAddressValues}    Session Range=10-100
+    Login to Application    ${SUBDOMAINURL}    ${subdomainuser}    ${subdomainuserpassword}
+    MenuSelect    Alerts
+    : FOR    ${index}    IN RANGE    0    2
+    \    Do Basic Search    ${basicValues${index}}
+    \    Enter And Validate Advanced Search Fields    ${filters${index}}
+    \    Wait For Element Invisible    ${headers.alerts.showresults.searchingdialog}    ${DELAY5}
+    \    ${resultsStatus}    Verify Element Visible    ${label.common.No matching data found}
+    \    Run Keyword If    ${resultsStatus}    Fail    'No matching data found' is displayed.
+    \    Comment    verify any one of the given IP network is displayed in the Network column in the Alerts table.
+    \    ${totalRows}    Get Table Rows Count in Alerts
+    \    ${networkValues}    Get Table Values Into List By Down Arrow    ${table.alerts.matchingRows}    ${table.alerts.searchResults.knob}    ${table.alerts.searchResults.barContainer}    Network
+    \    ...    False    ${totalRows}
+    \    ${networkValueStatus}    Match Result Values To Pattern    ${networkValues}    75.139.104.0
+    \    Run Keyword Unless    ${networkValueStatus}    Fail    Expected network value is not displayed.
+    Click On Show Results
+    Wait For Element Invisible    ${headers.alerts.showresults.searchingdialog}    ${DELAY5}
+    Click or Simulate    ${button.alerts.fraudMatch}
+    Wait For New Window    2
+    ${windowTitles}    Get Window Titles
+    Select the desired window    ${windowTitles}    Fraud Match
+    : FOR    ${index}    IN RANGE    0    2
+    \    Do Basic Search    ${basicValues${index}}
+    \    Enter And Validate Advanced Search Fields    ${filters${index}}
+    \    Wait For Element Invisible    ${headers.alerts.showresults.searchingdialog}    ${DELAY5}
+    \    ${resultsStatus}    Verify Element Visible    ${label.common.No matching data found}
+    \    Run Keyword If    ${resultsStatus}    Fail    'No matching data found' is displayed.
+    \    Comment    verify the given IP network is displayed in the Network column in the Alerts table.
+    \    ${totalRows}    Get Table Rows Count in Alerts
+    \    ${networkValues}    Get Table Values Into List By Down Arrow    ${table.fraudMatch.matchingRows}    ${table.alerts.searchResults.knob}    ${table.alerts.searchResults.barContainer}    Network
+    \    ...    False    ${totalRows}
+    \    ${networkValueStatus}    Match Result Values To Pattern    ${networkValues}    75.139.104.0
+    \    Run Keyword Unless    ${networkValueStatus}    Fail    Expected network value is not displayed.
+    Logout
+    [Teardown]    Stop Application
+
+RAAuto-1793:ALERTS: IP Address search by exact IP Address and network block address.
+    [Documentation]    1. Login to RiskApp as Subdomain user.
+    ...
+    ...    2. Verify the tenent is selected as VirgeniaCreditUnion and retail.
+    ...
+    ...    3. Navigate to Alerts page.
+    ...
+    ...    4. Give From(ET) as 09/07/2015 and To(ET) as 09/07/2015.
+    ...
+    ...    5. Select status as Viewed and Not viewed.
+    ...
+    ...    6. Give the IP Network as "216.34.61,108.44.209.7" in IP Address field and search for results.
+    ...
+    ...    7. Click on Show Results.
+    ...
+    ...    8. Some results must be displayed and verify any one of the given IP network is displayed in the Network column in the Alerts table.
+    ...
+    ...    9. Give date field as AllTime and click on Show Results.
+    ...
+    ...    10. Some results must be displayed and verify any one of the given IP network is displayed in the Network column in the Alerts table.
+    ...
+    ...    11. Logout from the application.
+    ...
+    ...    ================================
+    ...
+    ...    From step 8, user should be able to see sessions which are in between given custom dates and any one of the given IP network in the Network column.
+    ...
+    ...
+    ...    From step 10, user should be able to see sessions which are of AllTime and any one of the given IP network in the Network column.
+    ${ipAddressValues}    Set Variable    216.34.61,108.44.209.7
+    ${basicValues0}    Create Dictionary    Date=Custom    From=09/07/2015    To=09/07/2015    Risk=All    Status=Not Viewed,Viewed,Case Open,Case Closed,Dismissed
+    ${filters0}    Create Dictionary    IP Address=${ipAddressValues}
+    ${basicValues1}    Create Dictionary    Date=All Time    Risk=All    Status=Not Viewed,Viewed,Case Open,Case Closed,Dismissed
+    ${filters1}    Create Dictionary    IP Address=${ipAddressValues}    Risk Factor=OSBrowser    Session Range=2
+    Login to Application    ${SUBDOMAINURL}    ${subdomainuser}    ${subdomainuserpassword}
+    MenuSelect    Alerts
+    : FOR    ${index}    IN RANGE    0    2
+    \    Do Basic Search    ${basicValues${index}}
+    \    Enter And Validate Advanced Search Fields    ${filters${index}}
+    \    Wait For Element Invisible    ${headers.alerts.showresults.searchingdialog}    ${DELAY5}
+    \    ${resultsStatus}    Verify Element Visible    ${label.common.No matching data found}
+    \    Run Keyword If    ${resultsStatus}    Fail    'No matching data found' is displayed.
+    \    Comment    verify any one of the given IP network is displayed in the Network column in the Alerts table.
+    \    ${totalRows}    Get Table Rows Count in Alerts
+    \    ${networkValues}    Get Table Values Into List By Down Arrow    ${table.alerts.matchingRows}    ${table.alerts.searchResults.knob}    ${table.alerts.searchResults.barContainer}    Network
+    \    ...    False    ${totalRows}
+    \    ${networkValueStatus}    Match Result Values To Pattern    ${networkValues}    216.34.61.0
+    \    ${networkValueStatus1}    Match Result Values To Pattern    ${networkValues}    108.44.209.0
+    \    Run Keyword If    ${networkValueStatus}!=True and ${networkValueStatus1}!=True    Fail    Expected network value is not displayed.
+    Click On Show Results
+    Wait For Element Invisible    ${headers.alerts.showresults.searchingdialog}    ${DELAY5}
+    Click or Simulate    ${button.alerts.fraudMatch}
+    Wait For New Window    2
+    ${windowTitles}    Get Window Titles
+    Select the desired window    ${windowTitles}    Fraud Match
+    : FOR    ${index}    IN RANGE    0    2
+    \    Do Basic Search    ${basicValues${index}}
+    \    Enter And Validate Advanced Search Fields    ${filters${index}}
+    \    Wait For Element Invisible    ${headers.alerts.showresults.searchingdialog}    ${DELAY5}
+    \    ${resultsStatus}    Verify Element Visible    ${label.common.No matching data found}
+    \    Run Keyword If    ${resultsStatus}    Fail    'No matching data found' is displayed.
+    \    Comment    verify any one of the given IP network is displayed in the Network column in the Alerts table.
+    \    ${totalRows}    Get Table Rows Count in Alerts
+    \    ${networkValues}    Get Table Values Into List By Down Arrow    ${table.fraudMatch.matchingRows}    ${table.alerts.searchResults.knob}    ${table.alerts.searchResults.barContainer}    Network
+    \    ...    False    ${totalRows}
+    \    ${networkValueStatus}    Match Result Values To Pattern    ${networkValues}    216.34.61.0
+    \    ${networkValueStatus1}    Match Result Values To Pattern    ${networkValues}    108.44.209.0
+    \    Run Keyword If    ${networkValueStatus}!=True and ${networkValueStatus1}!=True    Fail    Expected network value is not displayed.
+    Logout
+    [Teardown]    Stop Application
+
+RAAuto-1794:ALERTS: IP Address search by multiple network block addresses.
+    [Documentation]    1. Login to RiskApp as Subdomain user.
+    ...
+    ...    2. Verify the tenent is selected as VirgeniaCreditUnion and retail.
+    ...
+    ...    3. Navigate to Alerts page.
+    ...
+    ...    4. Give From(ET) as 09/07/2015 and To(ET) as 09/07/2015.
+    ...
+    ...    5. Select status as Viewed and Not viewed.
+    ...
+    ...    6. Give the IP Network as "216.34.61, 108.44.209" in IP Address field and search for results.
+    ...
+    ...    7. Click on Show Results.
+    ...
+    ...    8. Some results must be displayed and verify any one of the given IP network is displayed in the Network column in the Alerts table.
+    ...
+    ...    9. Give date field as AllTime and click on Show Results.
+    ...
+    ...    10. Some results must be displayed and verify any one of the given IP network is displayed in the Network column in the Alerts table.
+    ...
+    ...    11. Logout from the application.
+    ...    =======================================
+    ...    From step 8, user should be able to see sessions which are in between given custom dates and any one of the given IP network in the Network column.
+    ...
+    ...    From step 10, user should be able to see sessions which are of AllTime and any one of the given IP network in the Network column.
+    ${basicSearchValues0}    Create Dictionary    date=Custom    from=09/07/2015    to=09/07/2015    risk=All    Status=Not Viewed,Viewed,Case Open,Case Closed,Dismissed
+    ${basicSearchValues1}    Create Dictionary    date=All Time    risk=All    Status=Not Viewed,Viewed,Case Open,Case Closed,Dismissed
+    ${filters0}    Create Dictionary    IP Address=216.34.61, 108.44.209
+    ${filters1}    Create Dictionary    IP Address=216.34.61, 108.44.209    Risk Factor=OSBrowser    Session Range=15
+    ${firstIpNetwork}    Set Variable    216.34.61.0
+    ${secondIpNetwork}    Set Variable    108.44.209.0
+    Comment    Login as Subdomain user.
+    Login to Application    ${SUBDOMAINURL}    ${subdomainuser}    ${subdomainuserpassword}
+    Comment    Verify whether Alerts page is selected or not.
+    Menu Select    alerts
+    ${advancedSearchPresenceStatus}    Wait For Element Visible    ${button.alerts.advanceSearch}    ${DELAY}
+    Run Keyword Unless    ${advancedSearchPresenceStatus}    Fail    The Advanced search field is not available in the Alerts page.
+    : FOR    ${index}    IN RANGE    0    2
+    \    Do Basic Search    ${basicSearchValues${index}}
+    \    Enter And Validate Advanced Search Fields    ${filters${index}}
+    \    ${noMatchingStatus}    Verify Element Visible    ${label.alerts.noMatchingDataFound}
+    \    Run Keyword If    ${noMatchingStatus}    Fail    No Matching data found for the iteration ${index}
+    \    ${tableRowsCount}    Get Table Rows Count By Scrolling    ${table.alerts.searchResults.knob}    ${table.alerts.searchResults.barContainer}
+    \    ${listOfIPNetworks}    Get Table Values Into List By Down Arrow    ${table.alerts.matchingRows}    ${table.alerts.searchResults.knob}    ${table.alerts.searchResults.barContainer}    Network
+    \    ...    False    ${tableRowsCount}
+    \    ${networkValueStatus}    Match Result Values To Pattern    ${listOfIPNetworks}    ${firstIpNetwork}
+    \    ${networkValueStatus1}    Match Result Values To Pattern    ${listOfIPNetworks}    ${secondIpNetwork}
+    \    Run Keyword If    ${networkValueStatus}!=True and ${networkValueStatus1}!=True    Fail    The given IP networks are not available in the Network column
+    Click On Show Results
+    Wait For Element Invisible    ${headers.alerts.showresults.searchingdialog}    ${DELAY5}
+    Click or Simulate    ${button.alerts.fraudMatch}
+    Wait For New Window    2
+    ${windowTitles}    Get Window Titles
+    Select the desired window    ${windowTitles}    Fraud Match
+    : FOR    ${index}    IN RANGE    0    2
+    \    Do Basic Search    ${basicSearchValues${index}}
+    \    Enter And Validate Advanced Search Fields    ${filters${index}}
+    \    Wait For Element Invisible    ${headers.alerts.showresults.searchingdialog}    ${DELAY5}
+    \    ${resultsStatus}    Verify Element Visible    ${label.common.No matching data found}
+    \    Run Keyword If    ${resultsStatus}    Fail    'No matching data found' is displayed.
+    \    Comment    verify any one of the given IP network is displayed in the Network column in the Alerts table.
+    \    ${totalRows}    Get Table Rows Count in Alerts
+    \    ${networkValues}    Get Table Values Into List By Down Arrow    ${table.fraudMatch.matchingRows}    ${table.alerts.searchResults.knob}    ${table.alerts.searchResults.barContainer}    Network
+    \    ...    False    ${totalRows}
+    \    ${networkValueStatus}    Match Result Values To Pattern    ${networkValues}    216.34.61.0
+    \    ${networkValueStatus1}    Match Result Values To Pattern    ${networkValues}    108.44.209.0
+    \    Run Keyword If    ${networkValueStatus}!=True and ${networkValueStatus1}!=True    Fail    Expected network value is not displayed.
+    Logout
+    [Teardown]    Stop Application
+
+*** Keywords ***
